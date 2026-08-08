@@ -1,6 +1,7 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 
 type Props = {
   locked: boolean;
@@ -8,8 +9,28 @@ type Props = {
 };
 
 export function LockStatusCard({ locked, onScan }: Props) {
+  const [helpVisible, setHelpVisible] = useState(false);
   const accent = locked ? "#E46C55" : "#16A079";
   const tint = locked ? "#FFF0EC" : "#E9F8F3";
+
+  // Copy and paste an item here to add another help bubble.
+  const helpItems = [
+    {
+      title: "Choose the apps you want to block",
+      body: "Open Settings, tap Choose apps, and select the apps you want ScanLock to protect.",
+      icon: "apps" as const,
+    },
+    {
+      title: "Scan to start focusing",
+      body: "From the Home tab, tap Scan to lock and point your camera at your ScanLock QR code.",
+      icon: "qr-code-scanner" as const,
+    },
+    {
+      title: "Scan again when you are done",
+      body: "Use the same QR code to unlock your selected apps and end your focus session.",
+      icon: "lock-open" as const,
+    },
+  ];
 
   function handlePress() {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -19,11 +40,23 @@ export function LockStatusCard({ locked, onScan }: Props) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <View style={styles.brandRow}>
-          <View style={styles.brandMark}>
-            <MaterialIcons name="qr-code-2" size={22} color="#FFFFFF" />
+        <View style={styles.headerRow}>
+          <View style={styles.brandRow}>
+            <View style={styles.brandMark}>
+              <MaterialIcons name="qr-code-2" size={22} color="#FFFFFF" />
+            </View>
+            <Text style={styles.brand}>ScanLock</Text>
           </View>
-          <Text style={styles.brand}>ScanLock</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open help"
+            accessibilityHint="Shows instructions for using ScanLock"
+            hitSlop={8}
+            onPress={() => setHelpVisible(true)}
+            style={({ pressed }) => [styles.helpButton, pressed && styles.iconButtonPressed]}
+          >
+            <MaterialIcons name="question-mark" size={23} color="#7057E8" />
+          </Pressable>
         </View>
 
         <View style={[styles.glow, { backgroundColor: tint }]} />
@@ -73,6 +106,59 @@ export function LockStatusCard({ locked, onScan }: Props) {
           </View>
         </View>
       </View>
+
+      <Modal
+        animationType="slide"
+        transparent
+        visible={helpVisible}
+        onRequestClose={() => setHelpVisible(false)}
+      >
+        <View style={styles.modalRoot}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close help"
+            style={styles.backdrop}
+            onPress={() => setHelpVisible(false)}
+          />
+          <SafeAreaView style={styles.helpSheet}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.helpHeader}>
+              <View style={styles.helpHeaderCopy}>
+                <Text style={styles.helpEyebrow}>HOW IT WORKS</Text>
+                <Text style={styles.helpTitle}>ScanLock help</Text>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close help"
+                hitSlop={8}
+                onPress={() => setHelpVisible(false)}
+                style={({ pressed }) => [styles.closeButton, pressed && styles.iconButtonPressed]}
+              >
+                <MaterialIcons name="close" size={24} color="#201C2B" />
+              </Pressable>
+            </View>
+            <Text style={styles.helpSubtitle}>A quick guide to locking and unlocking your apps.</Text>
+
+            <ScrollView
+              contentContainerStyle={styles.helpList}
+              showsVerticalScrollIndicator={false}
+            >
+              {helpItems.map((item, index) => (
+                <View key={item.title} style={styles.helpBubble}>
+                  <View style={styles.helpBubbleIcon}>
+                    <MaterialIcons name={item.icon} size={24} color="#7057E8" />
+                  </View>
+                  <View style={styles.helpBubbleCopy}>
+                    <Text style={styles.helpBubbleNumber}>STEP {index + 1}</Text>
+                    <Text style={styles.helpBubbleTitle}>{item.title}</Text>
+                    <Text style={styles.helpBubbleBody}>{item.body}</Text>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          </SafeAreaView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -80,9 +166,12 @@ export function LockStatusCard({ locked, onScan }: Props) {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#F8F7FC" },
   container: { flex: 1, paddingHorizontal: 24, paddingTop: 18, paddingBottom: 22, overflow: "hidden" },
+  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", zIndex: 1 },
   brandRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   brandMark: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "#7057E8" },
   brand: { color: "#201C2B", fontSize: 20, fontWeight: "800", letterSpacing: -0.4 },
+  helpButton: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "#EFECFF", borderWidth: 1, borderColor: "#E2DCF9" },
+  iconButtonPressed: { transform: [{ scale: 0.94 }], opacity: 0.8 },
   glow: { position: "absolute", width: 420, height: 420, borderRadius: 210, top: 90, alignSelf: "center", opacity: 0.75 },
   content: { flex: 1, alignItems: "center", justifyContent: "center", marginTop: 18 },
   lockCircle: { width: 178, height: 178, borderRadius: 89, alignItems: "center", justifyContent: "center", marginBottom: 28 },
@@ -98,4 +187,21 @@ const styles = StyleSheet.create({
   scanButtonText: { color: "#FFFFFF", fontSize: 17, fontWeight: "700" },
   secureRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 6 },
   secureText: { color: "#888397", fontSize: 12 },
+  modalRoot: { flex: 1, justifyContent: "flex-end" },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(32, 28, 43, 0.38)" },
+  helpSheet: { height: "82%", backgroundColor: "#F8F7FC", borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingTop: 10, shadowColor: "#201C2B", shadowOpacity: 0.18, shadowRadius: 24, shadowOffset: { width: 0, height: -8 }, elevation: 16 },
+  sheetHandle: { width: 42, height: 5, borderRadius: 3, alignSelf: "center", backgroundColor: "#D8D3E2", marginBottom: 14 },
+  helpHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 24 },
+  helpHeaderCopy: { flex: 1, paddingRight: 16 },
+  helpEyebrow: { color: "#7057E8", fontSize: 11, fontWeight: "800", letterSpacing: 1.5, marginBottom: 3 },
+  helpTitle: { color: "#201C2B", fontSize: 30, fontWeight: "800", letterSpacing: -0.8 },
+  closeButton: { width: 44, height: 44, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#ECE9F2" },
+  helpSubtitle: { color: "#6E687A", fontSize: 15, lineHeight: 22, marginTop: 10, paddingHorizontal: 24 },
+  helpList: { gap: 14, paddingHorizontal: 24, paddingTop: 22, paddingBottom: 34 },
+  helpBubble: { flexDirection: "row", gap: 14, backgroundColor: "#FFFFFF", borderRadius: 22, padding: 18, borderWidth: 1, borderColor: "#ECE9F2", shadowColor: "#251D4C", shadowOpacity: 0.05, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 2 },
+  helpBubbleIcon: { width: 46, height: 46, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: "#EFECFF" },
+  helpBubbleCopy: { flex: 1 },
+  helpBubbleNumber: { color: "#7057E8", fontSize: 10, fontWeight: "800", letterSpacing: 1.2, marginBottom: 4 },
+  helpBubbleTitle: { color: "#201C2B", fontSize: 17, lineHeight: 22, fontWeight: "800" },
+  helpBubbleBody: { color: "#6E687A", fontSize: 14, lineHeight: 21, marginTop: 6 },
 });

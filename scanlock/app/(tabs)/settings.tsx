@@ -1,4 +1,5 @@
 import { useSettings } from "@/hooks/use-settings";
+import { useOnboardingReplay } from "@/hooks/use-onboarding-replay";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import {
   Pressable,
@@ -11,6 +12,7 @@ import {
 
 export default function SettingsScreen() {
   const { selectedAppCount, selectBlockedApps, requestEmergencyUnlock } = useSettings();
+  const replayOnboarding = useOnboardingReplay();
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -82,6 +84,35 @@ export default function SettingsScreen() {
           </Pressable>
         </View>
 
+        {__DEV__ && (
+          <>
+            <View style={styles.sectionLabelRow}>
+              <Text style={styles.sectionLabel}>DEBUG · DEVELOPMENT ONLY</Text>
+            </View>
+
+            <View style={[styles.card, styles.debugCard]}>
+              <View style={styles.cardTopRow}>
+                <View style={styles.debugIcon}>
+                  <MaterialIcons name="bug-report" size={25} color="#4F7C66" />
+                </View>
+                <View style={styles.cardCopy}>
+                  <Text style={styles.cardTitle}>Onboarding</Text>
+                  <Text style={styles.cardDescription}>Reset the first-startup flag and open the walkthrough again.</Text>
+                </View>
+              </View>
+
+              <Pressable
+                accessibilityRole="button"
+                onPress={replayOnboarding}
+                style={({ pressed }) => [styles.debugButton, pressed && styles.buttonPressed]}
+              >
+                <MaterialIcons name="replay" size={20} color="#4F7C66" />
+                <Text style={styles.debugButtonText}>Replay onboarding</Text>
+              </Pressable>
+            </View>
+          </>
+        )}
+
         <View style={styles.securityNote}>
           <MaterialIcons name="verified-user" size={18} color="#888397" />
           <Text style={styles.securityNoteText}>Permission is requested only when an action needs it.</Text>
@@ -105,9 +136,11 @@ const styles = StyleSheet.create({
   countPillText: { color: "#7057E8", fontSize: 11, fontWeight: "700" },
   card: { backgroundColor: "#FFFFFF", borderRadius: 24, padding: 20, borderWidth: 1, borderColor: "#ECE9F2", shadowColor: "#251D4C", shadowOpacity: 0.06, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 3 },
   dangerCard: { borderColor: "#F2DCD7" },
+  debugCard: { borderColor: "#D5E5DC" },
   cardTopRow: { flexDirection: "row", alignItems: "flex-start", gap: 14 },
   primaryIcon: { width: 48, height: 48, borderRadius: 15, backgroundColor: "#EFECFF", alignItems: "center", justifyContent: "center" },
   dangerIcon: { width: 48, height: 48, borderRadius: 15, backgroundColor: "#FFF0EC", alignItems: "center", justifyContent: "center" },
+  debugIcon: { width: 48, height: 48, borderRadius: 15, backgroundColor: "#EAF4EE", alignItems: "center", justifyContent: "center" },
   cardCopy: { flex: 1 },
   cardTitle: { color: "#201C2B", fontSize: 19, fontWeight: "800" },
   cardDescription: { color: "#6E687A", fontSize: 14, lineHeight: 21, marginTop: 5 },
@@ -115,6 +148,8 @@ const styles = StyleSheet.create({
   primaryButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
   dangerButton: { height: 50, borderRadius: 15, marginTop: 20, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#FFF0EC", borderWidth: 1, borderColor: "#F2CFC7" },
   dangerButtonText: { color: "#D85C4A", fontSize: 15, fontWeight: "700" },
+  debugButton: { height: 50, borderRadius: 15, marginTop: 20, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#EAF4EE", borderWidth: 1, borderColor: "#CDE0D4" },
+  debugButtonText: { color: "#4F7C66", fontSize: 15, fontWeight: "700" },
   buttonPressed: { transform: [{ scale: 0.985 }], opacity: 0.9 },
   securityNote: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 24 },
   securityNoteText: { color: "#888397", fontSize: 12 },
