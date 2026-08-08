@@ -13,7 +13,7 @@ import {
 import QRCode from "react-native-qrcode-svg";
 
 import { requestAuthorization, selectApps } from "@/services/appBlocker";
-import { getOrCreateQrId } from "@/services/qrCode";
+import { getOrCreateQrPayload } from "@/services/qrCode";
 
 type WalkthroughProps = {
   onComplete: () => Promise<void>;
@@ -23,22 +23,22 @@ const STEPS = ["Welcome", "Choose apps", "Create QR", "How to scan"];
 
 export function FirstRunWalkthrough({ onComplete }: WalkthroughProps) {
   const [step, setStep] = useState(0);
-  const [qrId, setQrId] = useState<string | null>(null);
+  const [qrPayload, setQrPayload] = useState<string | null>(null);
   const [isChoosingApps, setIsChoosingApps] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const { width } = useWindowDimensions();
   const compact = width < 700;
 
   useEffect(() => {
-    if (step !== 2 || qrId !== null) return;
+    if (step !== 2 || qrPayload !== null) return;
 
-    getOrCreateQrId()
-      .then(setQrId)
+    getOrCreateQrPayload()
+      .then(setQrPayload)
       .catch((error) => {
         console.error("Could not create onboarding QR code:", error);
         Alert.alert("QR code unavailable", "ScanLock could not create your QR code. Please try again.");
       });
-  }, [qrId, step]);
+  }, [qrPayload, step]);
 
   async function chooseApps() {
     try {
@@ -113,7 +113,7 @@ export function FirstRunWalkthrough({ onComplete }: WalkthroughProps) {
             </Pressable>
           </View>
 
-          <View style={styles.content}>{renderStep(step, qrId, isChoosingApps, chooseApps)}</View>
+          <View style={styles.content}>{renderStep(step, qrPayload, isChoosingApps, chooseApps)}</View>
 
           <View style={styles.actions}>
             <Pressable
@@ -150,7 +150,7 @@ export function FirstRunWalkthrough({ onComplete }: WalkthroughProps) {
 
 function renderStep(
   step: number,
-  qrId: string | null,
+  qrPayload: string | null,
   isChoosingApps: boolean,
   chooseApps: () => Promise<void>
 ) {
@@ -196,7 +196,7 @@ function renderStep(
         <Text style={styles.title}>Your ScanLock QR code.</Text>
         <Text style={styles.body}>This unique code controls the apps you selected. Use the same code to lock and unlock them.</Text>
         <View style={styles.qrContainer}>
-          {qrId ? <QRCode value={qrId} size={190} color="#201C2B" backgroundColor="#FFFFFF" /> : <ActivityIndicator size="large" color="#7057E8" />}
+          {qrPayload ? <QRCode value={qrPayload} size={190} color="#201C2B" backgroundColor="#FFFFFF" /> : <ActivityIndicator size="large" color="#7057E8" />}
         </View>
         <Note icon="download" text="You can save, share, or print this QR code later from the Get Lock tab." />
       </View>

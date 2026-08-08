@@ -1,18 +1,18 @@
-import { getOrCreateQrId } from "@/services/qrCode";
+import { getOrCreateQrPayload, rotateQrKey } from "@/services/qrCode";
 import * as Sharing from "expo-sharing";
 import { useEffect, useRef, useState } from "react";
 import { Alert, View } from "react-native";
 import { captureRef } from "react-native-view-shot";
 
 export function useGetLock() {
-  const [qrId, setQrId] = useState<string | null>(null);
+  const [qrPayload, setQrPayload] = useState<string | null>(null);
   const qrCardRef = useRef<View>(null);
 
   useEffect(() => {
     let active = true;
 
-    getOrCreateQrId()
-      .then((id) => active && setQrId(id))
+    getOrCreateQrPayload()
+      .then((payload) => active && setQrPayload(payload))
       .catch((error) => {
         console.error("Could not load QR ID:", error);
         Alert.alert("Error", "Could not prepare your QR code.");
@@ -49,9 +49,35 @@ export function useGetLock() {
     }
   }
 
+  function requestQrKeyReplacement() {
+    Alert.alert(
+      "Replace QR key?",
+      "Your current printed and shared ScanLock codes will stop working.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Replace key",
+          style: "destructive",
+          onPress: replaceQrKey,
+        },
+      ]
+    );
+  }
+
+  async function replaceQrKey() {
+    try {
+      setQrPayload(await rotateQrKey());
+      Alert.alert("QR key replaced", "Print or share your new ScanLock code.");
+    } catch (error) {
+      console.error("Could not replace QR key:", error);
+      Alert.alert("Error", "Could not replace your QR key.");
+    }
+  }
+
   return {
-    qrId,
+    qrPayload,
     qrCardRef,
     shareQrCode,
+    requestQrKeyReplacement,
   };
 }

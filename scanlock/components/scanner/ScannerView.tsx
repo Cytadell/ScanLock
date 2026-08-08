@@ -64,8 +64,8 @@ export function ScannerView({
     }
   }, [frameScale, status]);
 
-  const successColor = locked ? "#16A079" : "#E46C55";
-  const frameColor = status === "success" ? successColor : status === "error" ? "#FF6B6B" : "#FFFFFF";
+  const successColor = locked ? "#E46C55" : "#16A079";
+  const frameColor = status === "success" ? successColor : ["error", "invalid-code"].includes(status) ? "#FF6B6B" : "#FFFFFF";
   const message = getStatusMessage(status, locked, errorMessage);
 
   return (
@@ -130,7 +130,7 @@ export function ScannerView({
                   <MaterialIcons name="check" size={52} color="#FFFFFF" />
                 </View>
               )}
-              {status === "error" && (
+              {(status === "error" || status === "invalid-code") && (
                 <View style={[styles.resultIcon, styles.errorIcon]}>
                   <MaterialIcons name="priority-high" size={48} color="#FFFFFF" />
                 </View>
@@ -142,7 +142,7 @@ export function ScannerView({
             <View style={styles.messageBlock}>
               <Text style={styles.messageTitle}>{message.title}</Text>
               <Text style={styles.messageText}>{message.detail}</Text>
-              {status === "error" && (
+              {(status === "error" || status === "invalid-code") && (
                 <Pressable style={styles.retryButton} onPress={onRetry}>
                   <MaterialIcons name="refresh" size={19} color="#18151F" />
                   <Text style={styles.retryText}>Try again</Text>
@@ -169,14 +169,16 @@ export function ScannerView({
   );
 }
 
-function getStatusMessage(status: ScanStatus, wasLocked: boolean, errorMessage?: string) {
+function getStatusMessage(status: ScanStatus, isLocked: boolean, errorMessage?: string) {
   switch (status) {
     case "requesting-permission":
       return { title: "Getting camera ready…", detail: "You may be asked to allow camera access." };
     case "verifying":
       return { title: "Applying your change…", detail: "Keep ScanLock open for just a moment." };
     case "success":
-      return { title: wasLocked ? "Apps unlocked" : "Apps locked", detail: wasLocked ? "Your selected apps are available again." : "Your focus session starts now." };
+      return { title: isLocked ? "Apps locked" : "Apps unlocked", detail: isLocked ? "Your focus session starts now." : "Your selected apps are available again." };
+    case "invalid-code":
+      return { title: "That isn’t your ScanLock", detail: "Scan the QR code generated in the Get Lock tab." };
     case "error":
       return { title: "Couldn’t update your apps", detail: errorMessage ?? "Something went wrong. Please try again." };
     default:

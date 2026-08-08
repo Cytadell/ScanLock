@@ -1,7 +1,7 @@
 import { LockStatusCard } from "@/components/scanner/LockStatusCard";
 import { ScannerView } from "@/components/scanner/ScannerView";
 import { useLockScanner } from "@/hooks/use-lock-scanner";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Modal, StyleSheet, View } from "react-native";
 
 export default function HomeScreen() {
   const scanner = useLockScanner();
@@ -16,16 +16,23 @@ export default function HomeScreen() {
 
   if (scanner.isOpen) {
     return (
-      <ScannerView
-        status={scanner.status}
-        locked={scanner.locked}
-        torchEnabled={scanner.torchEnabled}
-        errorMessage={scanner.errorMessage}
-        onBarcodeScanned={scanner.handleBarcodeScanned}
-        onToggleTorch={scanner.toggleTorch}
-        onRetry={scanner.retry}
-        onClose={scanner.close}
-      />
+      <Modal
+        animationType="slide"
+        presentationStyle="fullScreen"
+        visible
+        onRequestClose={scanner.close}
+      >
+        <ScannerView
+          status={scanner.status}
+          locked={scanner.locked}
+          torchEnabled={scanner.torchEnabled}
+          errorMessage={scanner.errorMessage}
+          onBarcodeScanned={scanner.handleBarcodeScanned}
+          onToggleTorch={scanner.toggleTorch}
+          onRetry={scanner.retry}
+          onClose={scanner.close}
+        />
+      </Modal>
     );
   }
 

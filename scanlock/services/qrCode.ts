@@ -1,17 +1,93 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Crypto from "expo-crypto";
 
-const QR_ID_KEY = "qr-brick:qrId";
+const QR_KEY_ID_KEY = "scanlock:qr-key-id:v1";
+const QR_PAYLOAD_TYPE = "scanlock-key";
+const QR_PAYLOAD_VERSION = 1;
 
-export async function getOrCreateQrId(): Promise<string> {
-  const savedId = await AsyncStorage.getItem(QR_ID_KEY);
+export type ScanLockQrPayload = {
+  type: typeof QR_PAYLOAD_TYPE;
+  version: typeof QR_PAYLOAD_VERSION;
+  keyId: string;
+};
 
-  if (savedId) return savedId;
+let keyCreationPromise: Promise<string> | null = null;
 
-  const newId = generateQrId();
-  await AsyncStorage.setItem(QR_ID_KEY, newId);
-  return newId;
+export async function getOrCreateQrPayload(): Promise<string> {
+  return encodeQrPayload(await getOrCreateKeyId());
 }
 
-function generateQrId(): string {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).substring(2)}`;
+export async function validateQrPayload(value: string): Promise<boolean> {
+  const payload = parseQrPayload(value);
+  if (!payload) return false;
+
+  const savedKeyId = await AsyncStorage.getItem(QR_KEY_ID_KEY);
+  return savedKeyId !== null && payload.keyId === savedKeyId;
+}
+
+export async function rotateQrKey(): Promise<string> {
+  const keyId = createSecureKeyId();
+  await AsyncStorage.setItem(QR_KEY_ID_KEY, keyId);
+  return encodeQrPayload(keyId);
+}
+
+export function parseQrPayload(value: string): ScanLockQrPayload | null {
+  try {
+    const payload: unknown = JSON.parse(value);
+
+    if (
+      typeof payload !== "object" ||
+      payload === null ||
+      !("type" in payload) ||
+      !("version" in payload) ||
+      !("keyId" in payload) ||
+      payload.type !== QR_PAYLOAD_TYPE ||
+      payload.version !== QR_PAYLOAD_VERSION ||
+      typeof payload.keyId !== "string" ||
+      payload.keyId.length === 0
+    ) {
+      return null;
+    }
+
+    return {
+      type: QR_PAYLOAD_TYPE,
+      version: QR_PAYLOAD_VERSION,
+      keyId: payload.keyId,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function getOrCreateKeyId(): Promise<string> {
+  const savedKeyId = await AsyncStorage.getItem(QR_KEY_ID_KEY);
+  if (savedKeyId) return savedKeyId;
+
+  keyCreationPromise ??= createAndSaveKeyId();
+
+  try {
+    return await keyCreationPromise;
+  } finally {
+    keyCreationPromise = null;
+  }
+}
+
+async function createAndSaveKeyId(): Promise<string> {
+  const keyId = createSecureKeyId();
+  await AsyncStorage.setItem(QR_KEY_ID_KEY, keyId);
+  return keyId;
+}
+
+function createSecureKeyId(): string {
+  return Crypto.randomUUID();
+}
+
+function encodeQrPayload(keyId: string): string {
+  const payload: ScanLockQrPayload = {
+    type: QR_PAYLOAD_TYPE,
+    version: QR_PAYLOAD_VERSION,
+    keyId,
+  };
+
+  return JSON.stringify(payload);
 }

@@ -1,5 +1,6 @@
 import { disableBlocking, enableBlocking, requestAuthorization } from "@/services/appBlocker";
 import { getLocked, setLocked } from "@/services/lockStorage";
+import { validateQrPayload } from "@/services/qrCode";
 import { BarcodeScanningResult, useCameraPermissions } from "expo-camera";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect } from "expo-router";
@@ -11,6 +12,7 @@ export type ScanStatus =
   | "scanning"
   | "verifying"
   | "success"
+  | "invalid-code"
   | "error";
 
 export function useLockScanner() {
@@ -65,12 +67,27 @@ export function useLockScanner() {
   }, [permission?.granted, requestPermission]);
 
   const handleBarcodeScanned = useCallback(
-    async (_result: BarcodeScanningResult) => {
+    async (result: BarcodeScanningResult) => {
       if (scanLockRef.current) return;
 
       scanLockRef.current = true;
       setStatus("verifying");
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      try {
+        const isValid = await validateQrPayload(result.data);
+        if (!isValid) {
+          setStatus("invalid-code");
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          return;
+        }
+      } catch (error) {
+        console.error("Could not validate QR code:", error);
+        setErrorMessage("We couldn’t verify this QR code. Please try again.");
+        setStatus("error");
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        return;
+      }
 
       const nextLocked = !locked;
 
