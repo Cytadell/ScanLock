@@ -1,230 +1,121 @@
+import { useSettings } from "@/hooks/use-settings";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import {
-  disableBlocking,
-  getSelectedAppCount,
-  requestAuthorization,
-  selectApps,
-} from "@/services/appBlocker";
-
-import { setLocked } from "@/services/lockStorage";
-
-import { useEffect, useState } from "react";
-import {
-  Alert,
   Pressable,
+  SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 
-
 export default function SettingsScreen() {
-
-  const [selectedAppCount, setSelectedAppCount] = useState(0);
-
-  useEffect(() => {
-    async function loadSelectedAppCount() {
-      const count = await getSelectedAppCount();
-      setSelectedAppCount(count);
-    }
-
-    loadSelectedAppCount();
-  }, []);
-
-  async function handleSelectApps() {
-    try {
-      const authorized = await requestAuthorization();
-
-      if (!authorized) {
-        Alert.alert(
-          "Permission Required",
-          "Screen Time permission is required to select apps."
-        );
-        return;
-      }
-
-      await selectApps();
-    } catch (error) {
-      console.error("Could not select apps:", error);
-
-      Alert.alert(
-        "Error",
-        "Could not open the app selector."
-      );
-    }
-  }
-
-  async function emergencyUnlock() {
-    try {
-      const authorized = await requestAuthorization();
-
-      if (!authorized) {
-        Alert.alert(
-          "Permission Required",
-          "Screen Time permission is required to disable app blocking."
-        );
-        return;
-      }
-
-      Alert.alert(
-        "Emergency Unlock",
-        "This will immediately disable the lock state. Are you certain?",
-        [
-          {
-            text: "Cancel",
-            style: "cancel",
-          },
-          {
-            text: "Unlock",
-            style: "destructive",
-            onPress: async () => {
-              try {
-                // First disable the actual native app blocking.
-                await disableBlocking();
-
-                // Only mark the app as unlocked after blocking is disabled.
-                await setLocked(false);
-
-                Alert.alert(
-                  "Unlocked",
-                  "QR Brick has been disabled."
-                );
-              } catch (error) {
-                console.error(
-                  "Could not emergency unlock:",
-                  error
-                );
-
-                Alert.alert(
-                  "Error",
-                  "Could not disable QR Brick."
-                );
-              }
-            },
-          },
-        ]
-      );
-    } catch (error) {
-      console.error(
-        "Could not request authorization:",
-        error
-      );
-
-      Alert.alert(
-        "Error",
-        "Could not request Screen Time permission."
-      );
-    }
-  }
+  const { selectedAppCount, selectBlockedApps, requestEmergencyUnlock } = useSettings();
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Settings</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.eyebrow}>PREFERENCES</Text>
+            <Text style={styles.title}>Settings</Text>
+          </View>
+          <View style={styles.headerIcon}>
+            <MaterialIcons name="settings" size={25} color="#7057E8" />
+          </View>
+        </View>
+        <Text style={styles.subtitle}>Choose what ScanLock protects and manage your fallback access.</Text>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>
-          Blocked Apps
-        </Text>
+        <View style={styles.sectionLabelRow}>
+          <Text style={styles.sectionLabel}>FOCUS</Text>
+          <View style={styles.countPill}>
+            <Text style={styles.countPillText}>{selectedAppCount} selected</Text>
+          </View>
+        </View>
 
-        <Text style={styles.description}>
-          Choose which apps should be blocked when Scan Lock is active.
-        </Text>
+        <View style={styles.card}>
+          <View style={styles.cardTopRow}>
+            <View style={styles.primaryIcon}>
+              <MaterialIcons name="apps" size={25} color="#7057E8" />
+            </View>
+            <View style={styles.cardCopy}>
+              <Text style={styles.cardTitle}>Blocked apps</Text>
+              <Text style={styles.cardDescription}>Choose the apps that become unavailable when ScanLock is active.</Text>
+            </View>
+          </View>
 
-        <Pressable
-          style={styles.button}
-          onPress={handleSelectApps}
-        >
-          <Text style={styles.buttonText}>
-            Select Apps
-          </Text>
-        </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={selectBlockedApps}
+            style={({ pressed }) => [styles.primaryButton, pressed && styles.buttonPressed]}
+          >
+            <Text style={styles.primaryButtonText}>Choose apps</Text>
+            <MaterialIcons name="chevron-right" size={22} color="#FFFFFF" />
+          </Pressable>
+        </View>
 
-        <Text style={styles.smallText}>
-          {selectedAppCount} apps selected
-        </Text>
-      </View>
+        <View style={styles.sectionLabelRow}>
+          <Text style={styles.sectionLabel}>SAFETY</Text>
+        </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>
-          Emergency Access
-        </Text>
+        <View style={[styles.card, styles.dangerCard]}>
+          <View style={styles.cardTopRow}>
+            <View style={styles.dangerIcon}>
+              <MaterialIcons name="lock-open" size={25} color="#D85C4A" />
+            </View>
+            <View style={styles.cardCopy}>
+              <Text style={styles.cardTitle}>Emergency access</Text>
+              <Text style={styles.cardDescription}>Immediately disable app blocking if your QR code is unavailable.</Text>
+            </View>
+          </View>
 
-        <Text style={styles.description}>
-          Immediately disable blocking if you lose access to your QR code.
-        </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={requestEmergencyUnlock}
+            style={({ pressed }) => [styles.dangerButton, pressed && styles.buttonPressed]}
+          >
+            <MaterialIcons name="warning-amber" size={20} color="#D85C4A" />
+            <Text style={styles.dangerButtonText}>Emergency unlock</Text>
+          </Pressable>
+        </View>
 
-        <Pressable
-          style={styles.dangerButton}
-          onPress={emergencyUnlock}
-        >
-          <Text style={styles.dangerButtonText}>
-            Emergency Unlock
-          </Text>
-        </Pressable>
-      </View>
-    </View>
+        <View style={styles.securityNote}>
+          <MaterialIcons name="verified-user" size={18} color="#888397" />
+          <Text style={styles.securityNoteText}>Permission is requested only when an action needs it.</Text>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-    paddingTop: 70,
-  },
-
-  title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    marginBottom: 30,
-  },
-
-  section: {
-    marginBottom: 36,
-  },
-
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
-
-  description: {
-    fontSize: 15,
-    marginBottom: 16,
-    lineHeight: 21,
-  },
-
-  button: {
-    backgroundColor: "#222",
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderRadius: 10,
-    alignSelf: "flex-start",
-  },
-
-  buttonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-
-  smallText: {
-    marginTop: 10,
-    fontSize: 14,
-  },
-
-  dangerButton: {
-    borderWidth: 1,
-    borderColor: "red",
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderRadius: 10,
-    alignSelf: "flex-start",
-  },
-
-  dangerButtonText: {
-    color: "red",
-    fontSize: 16,
-    fontWeight: "600",
-  },
+  safeArea: { flex: 1, backgroundColor: "#F8F7FC" },
+  container: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 34 },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  eyebrow: { color: "#7057E8", fontSize: 11, fontWeight: "800", letterSpacing: 1.5, marginBottom: 3 },
+  title: { color: "#201C2B", fontSize: 34, fontWeight: "800", letterSpacing: -1 },
+  headerIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: "#EFECFF", alignItems: "center", justifyContent: "center" },
+  subtitle: { color: "#6E687A", fontSize: 15, lineHeight: 22, marginTop: 12, maxWidth: 340 },
+  sectionLabelRow: { minHeight: 46, flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingBottom: 10, marginTop: 12 },
+  sectionLabel: { color: "#888397", fontSize: 11, fontWeight: "800", letterSpacing: 1.4 },
+  countPill: { backgroundColor: "#EFECFF", borderRadius: 99, paddingHorizontal: 10, paddingVertical: 5 },
+  countPillText: { color: "#7057E8", fontSize: 11, fontWeight: "700" },
+  card: { backgroundColor: "#FFFFFF", borderRadius: 24, padding: 20, borderWidth: 1, borderColor: "#ECE9F2", shadowColor: "#251D4C", shadowOpacity: 0.06, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 3 },
+  dangerCard: { borderColor: "#F2DCD7" },
+  cardTopRow: { flexDirection: "row", alignItems: "flex-start", gap: 14 },
+  primaryIcon: { width: 48, height: 48, borderRadius: 15, backgroundColor: "#EFECFF", alignItems: "center", justifyContent: "center" },
+  dangerIcon: { width: 48, height: 48, borderRadius: 15, backgroundColor: "#FFF0EC", alignItems: "center", justifyContent: "center" },
+  cardCopy: { flex: 1 },
+  cardTitle: { color: "#201C2B", fontSize: 19, fontWeight: "800" },
+  cardDescription: { color: "#6E687A", fontSize: 14, lineHeight: 21, marginTop: 5 },
+  primaryButton: { height: 50, borderRadius: 15, marginTop: 20, paddingHorizontal: 17, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#7057E8" },
+  primaryButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
+  dangerButton: { height: 50, borderRadius: 15, marginTop: 20, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#FFF0EC", borderWidth: 1, borderColor: "#F2CFC7" },
+  dangerButtonText: { color: "#D85C4A", fontSize: 15, fontWeight: "700" },
+  buttonPressed: { transform: [{ scale: 0.985 }], opacity: 0.9 },
+  securityNote: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 24 },
+  securityNoteText: { color: "#888397", fontSize: 12 },
 });
