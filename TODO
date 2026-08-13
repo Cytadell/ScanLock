@@ -1,0 +1,3 @@
+1. Make a universal scanlock for debug (not that security really matters for this)
+2. Make an isLocking Enabled native rather than having a seperate async stored locked bool
+3. Build system for handling poorly timed deletion and leftover shield risk

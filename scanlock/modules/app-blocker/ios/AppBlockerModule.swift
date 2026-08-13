@@ -1,48 +1,63 @@
 import ExpoModulesCore
+import FamilyControls
 
-public class AppBlockerModule: Module {
-  // Each module class must implement the definition function. The definition consists of components
-  // that describes the module's functionality and behavior.
-  // See https://docs.expo.dev/modules/module-api for more details about available components.
-  public func definition() -> ModuleDefinition {
-    // Sets the name of the module that JavaScript code will use to refer to the module. Takes a string as an argument.
-    // Can be inferred from module's class name, but it's recommended to set it explicitly for clarity.
-    // The module will be accessible from `requireNativeModule('AppBlocker')` in JavaScript.
-    Name("AppBlocker")
+public final class AppBlockerModule: Module {
+    public func definition() -> ModuleDefinition {
+        Name("AppBlocker")
 
-    // Defines constant property on the module.
-    Constant("PI") {
-      Double.pi
-    }
+        AsyncFunction("requestAuthorization") {
+            do {
+                try await AuthorizationCenter.shared
+                    .requestAuthorization(for: .individual)
 
-    // Defines event names that the module can send to JavaScript.
-    Events("onChange")
-
-    // Defines a JavaScript synchronous function that runs the native code on the JavaScript thread.
-    Function("hello") {
-      return "Hello world! 👋"
-    }
-
-    // Defines a JavaScript function that always returns a Promise and whose native code
-    // is by default dispatched on the different thread than the JavaScript runtime runs on.
-    AsyncFunction("setValueAsync") { (value: String) in
-      // Send an event to JavaScript.
-      self.sendEvent("onChange", [
-        "value": value
-      ])
-    }
-
-    // Enables the module to be used as a native view. Definition components that are accepted as part of the
-    // view definition: Prop, Events.
-    View(AppBlockerView.self) {
-      // Defines a setter for the `url` prop.
-      Prop("url") { (view: AppBlockerView, url: URL) in
-        if view.webView.url != url {
-          view.webView.load(URLRequest(url: url))
+                return AuthorizationCenter.shared.authorizationStatus == .approved
+            } catch {
+                return false
+            }
         }
-      }
 
-      Events("onLoad")
+        AsyncFunction("selectApps") {
+            guard AuthorizationCenter.shared.authorizationStatus == .approved else {
+                throw AppBlockerModuleError.notAuthorized
+            }
+
+            return try await AppPickerPresenter.shared.present()
+        }
+
+        Function("isAuthorized") {
+            AuthorizationCenter.shared.authorizationStatus == .approved
+        }
+
+        Function("getSelectedAppCount") {
+            AppSelectionStore.shared.getSelectedItemCount()
+        }
+
+        Function("hasSelection") {
+            AppSelectionStore.shared.hasSelection()
+        }
+
+        AsyncFunction("enableBlocking") {
+            try AppBlocker.shared.enable()
+        }
+
+        AsyncFunction("disableBlocking") {
+            AppBlocker.shared.disable()
+        }
+
+        AsyncFunction("clearSelection") {
+            AppBlocker.shared.disable()
+            AppSelectionStore.shared.clear()
+        }
     }
-  }
+}
+
+enum AppBlockerModuleError: LocalizedError {
+    case notAuthorized
+
+    var errorDescription: String? {
+        switch self {
+        case .notAuthorized:
+            return "Screen Time authorization is required before selecting apps."
+        }
+    }
 }

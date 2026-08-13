@@ -1,12 +1,16 @@
-import { NativeModule, requireNativeModule } from 'expo';
+import { NativeModule, requireNativeModule } from "expo";
 
-import { AppBlockerModuleEvents } from './AppBlocker.types';
+import type { BlockedAppSelection } from "./AppBlocker.types";
 
-declare class AppBlockerModule extends NativeModule<AppBlockerModuleEvents> {
-  PI: number;
-  hello(): string;
-  setValueAsync(value: string): Promise<void>;
+declare class AppBlockerModule extends NativeModule {
+  requestAuthorization(): Promise<boolean>;
+  selectApps(): Promise<BlockedAppSelection>;
+  isAuthorized(): boolean;
+  getSelectedAppCount(): number;
+  hasSelection(): boolean;
+  enableBlocking(): Promise<void>;
+  disableBlocking(): Promise<void>;
+  clearSelection(): Promise<void>;
 }
 
-// This call loads the native module object from the JSI.
-export default requireNativeModule<AppBlockerModule>('AppBlocker');
+export default requireNativeModule<AppBlockerModule>("AppBlocker");

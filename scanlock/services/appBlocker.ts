@@ -1,61 +1,72 @@
+import type { BlockedAppSelection } from "@/modules/app-blocker";
+import { expoGoAppBlocker } from "@/services/appBlocker.expoGo";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import { requireOptionalNativeModule } from "expo-modules-core";
+import { Platform } from "react-native";
 
-export type BlockedAppSelection = {
-  count: number;
-};
+export type { BlockedAppSelection };
 
 type AppBlockerNativeModule = {
   requestAuthorization(): Promise<boolean>;
-  selectApps(): Promise<void>;
+  selectApps(): Promise<BlockedAppSelection>;
+  isAuthorized(): boolean;
   getSelectedAppCount(): number;
+  hasSelection(): boolean;
   enableBlocking(): Promise<void>;
   disableBlocking(): Promise<void>;
+  clearSelection(): Promise<void>;
 };
 
 const nativeAppBlocker =
   requireOptionalNativeModule<AppBlockerNativeModule>("AppBlocker");
 
-export async function requestAuthorization(): Promise<boolean> {
-  if (nativeAppBlocker) {
-    return nativeAppBlocker.requestAuthorization();
+const isExpoGo =
+  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+function requireAppBlocker(): AppBlockerNativeModule {
+  if (isExpoGo) {
+    return expoGoAppBlocker;
   }
 
-  console.log("Mock: request Screen Time authorization (native module unavailable)");
-  return true;
+  if (!nativeAppBlocker) {
+    throw new Error(
+      Platform.OS === "ios"
+        ? "AppBlocker is missing from this iOS build. Rebuild the native app."
+        : "App blocking is not available on this platform yet."
+    );
+  }
+
+  return nativeAppBlocker;
+}
+
+export async function requestAuthorization(): Promise<boolean> {
+  return requireAppBlocker().requestAuthorization();
 }
 
 export async function selectApps(): Promise<BlockedAppSelection> {
-  if (nativeAppBlocker) {
-    await nativeAppBlocker.selectApps();
-    return { count: nativeAppBlocker.getSelectedAppCount() };
-  }
-
-  console.log("Mock: open app picker (native module unavailable)");
-  return { count: 3 };
+  return requireAppBlocker().selectApps();
 }
 
 export async function getSelectedAppCount(): Promise<number> {
-  if (nativeAppBlocker) {
-    return nativeAppBlocker.getSelectedAppCount();
-  }
+  return requireAppBlocker().getSelectedAppCount();
+}
 
-  return 0;
+export function isAuthorized(): boolean {
+  return requireAppBlocker().isAuthorized();
+}
+
+export function hasSelection(): boolean {
+  return requireAppBlocker().hasSelection();
 }
 
 export async function enableBlocking(): Promise<void> {
-  if (nativeAppBlocker) {
-    await nativeAppBlocker.enableBlocking();
-    return;
-  }
-
-  console.log("Mock: blocking enabled (native module unavailable)");
+  await requireAppBlocker().enableBlocking();
 }
 
 export async function disableBlocking(): Promise<void> {
-  if (nativeAppBlocker) {
-    await nativeAppBlocker.disableBlocking();
-    return;
-  }
+  await requireAppBlocker().disableBlocking();
+}
 
-  console.log("Mock: blocking disabled (native module unavailable)");
+export async function clearSelection(): Promise<void> {
+  await requireAppBlocker().clearSelection();
 }

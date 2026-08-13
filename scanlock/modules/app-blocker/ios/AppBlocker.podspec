@@ -1,13 +1,12 @@
 Pod::Spec.new do |s|
   s.name           = 'AppBlocker'
   s.version        = '1.0.0'
-  s.summary        = 'A sample project summary'
-  s.description    = 'A sample project description'
+  s.summary        = 'ScanLock app-blocking native module'
+  s.description    = 'Bridges FamilyControls and ManagedSettings to ScanLock.'
   s.author         = ''
   s.homepage       = 'https://docs.expo.dev/modules/'
   s.platforms      = {
-    :ios => '15.1',
-    :tvos => '15.1'
+    :ios => '16.0'
   }
   s.source         = { git: '' }
   s.static_framework = true
