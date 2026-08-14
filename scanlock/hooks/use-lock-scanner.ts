@@ -1,5 +1,4 @@
-import { disableBlocking, enableBlocking, requestAuthorization } from "@/services/appBlocker";
-import { getLocked, setLocked } from "@/services/lockStorage";
+import { disableBlocking, enableBlocking, getLocked, requestAuthorization } from "@/services/appBlocker";
 import { validateQrPayload } from "@/services/qrCode";
 import { BarcodeScanningResult, useCameraPermissions } from "expo-camera";
 import * as Haptics from "expo-haptics";
@@ -30,10 +29,13 @@ export function useLockScanner() {
     useCallback(() => {
       let active = true;
 
-      getLocked()
-        .then((savedLocked) => active && setLockedState(savedLocked))
-        .catch((error) => console.error("Could not load locked state:", error))
-        .finally(() => active && setIsLoading(false));
+      try {
+        if (active) setLockedState(getLocked());
+      } catch (error) {
+        console.error("Could not load locked state:", error);
+      } finally {
+        if (active) setIsLoading(false);
+      }
 
       return () => {
         active = false;
@@ -100,7 +102,6 @@ export function useLockScanner() {
         if (nextLocked) await enableBlocking();
         else await disableBlocking();
 
-        await setLocked(nextLocked);
         setLockedState(nextLocked);
         setStatus("success");
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

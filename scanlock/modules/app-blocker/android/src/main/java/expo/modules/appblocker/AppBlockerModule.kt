@@ -19,6 +19,7 @@ class AppBlockerModule : Module() {
     Function("isAuthorized") { false }
     Function("getSelectedAppCount") { 0 }
     Function("hasSelection") { false }
+    Function("getLocked") { false }
 
     AsyncFunction("enableBlocking") {
       throw AppBlockerUnavailableException()

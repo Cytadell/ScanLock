@@ -9,6 +9,12 @@ final class AppBlocker {
 
     private init() {}
 
+    var isLocked: Bool {
+        settingsStore.shield.applications != nil ||
+            settingsStore.shield.applicationCategories != nil ||
+            settingsStore.shield.webDomains != nil
+    }
+
     func enable() throws {
         guard AuthorizationCenter.shared.authorizationStatus == .approved else {
             throw AppBlockerError.notAuthorized

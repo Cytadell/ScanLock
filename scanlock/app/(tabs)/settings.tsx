@@ -1,7 +1,11 @@
 import { useSettings } from "@/hooks/use-settings";
 import { useOnboardingReplay } from "@/hooks/use-onboarding-replay";
+import { generateUniversalQrPayload } from "@/services/qrCode";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import * as Sharing from "expo-sharing";
+import { useRef } from "react";
 import {
+  Alert,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -9,10 +13,38 @@ import {
   Text,
   View,
 } from "react-native";
+import QRCode from "react-native-qrcode-svg";
+import { captureRef } from "react-native-view-shot";
 
 export default function SettingsScreen() {
   const { selectedAppCount, selectBlockedApps, requestEmergencyUnlock } = useSettings();
   const replayOnboarding = useOnboardingReplay();
+  const universalQrRef = useRef<View>(null);
+  const universalQrPayload = generateUniversalQrPayload();
+
+  async function shareUniversalQrCode() {
+    if (!universalQrRef.current) return;
+
+    try {
+      if (!(await Sharing.isAvailableAsync())) {
+        Alert.alert("Sharing unavailable", "This device cannot share files.");
+        return;
+      }
+
+      const uri = await captureRef(universalQrRef, {
+        format: "png",
+        quality: 1,
+      });
+
+      await Sharing.shareAsync(uri, {
+        mimeType: "image/png",
+        dialogTitle: "Share Universal QR Code",
+      });
+    } catch (error) {
+      console.error("Could not share universal QR code:", error);
+      Alert.alert("Error", "Could not share the universal QR code.");
+    }
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -110,6 +142,33 @@ export default function SettingsScreen() {
                 <Text style={styles.debugButtonText}>Replay onboarding</Text>
               </Pressable>
             </View>
+
+            <View style={[styles.card, styles.debugCard, styles.universalQrCard]}>
+              <View style={styles.cardTopRow}>
+                <View style={styles.debugIcon}>
+                  <MaterialIcons name="qr-code-2" size={25} color="#4F7C66" />
+                </View>
+                <View style={styles.cardCopy}>
+                  <Text style={styles.cardTitle}>Universal QR code</Text>
+                  <Text style={styles.cardDescription}>This development key is accepted by every ScanLock installation.</Text>
+                </View>
+              </View>
+
+              <View ref={universalQrRef} collapsable={false} style={styles.universalQrImage}>
+                <Text style={styles.universalQrBrand}>ScanLock Universal Key</Text>
+                <QRCode value={universalQrPayload} size={180} color="#201C2B" backgroundColor="#FFFFFF" />
+              </View>
+
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Share or save universal QR code"
+                onPress={shareUniversalQrCode}
+                style={({ pressed }) => [styles.debugButton, pressed && styles.buttonPressed]}
+              >
+                <MaterialIcons name="ios-share" size={20} color="#4F7C66" />
+                <Text style={styles.debugButtonText}>Share or save universal QR</Text>
+              </Pressable>
+            </View>
           </>
         )}
 
@@ -137,6 +196,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: "#FFFFFF", borderRadius: 24, padding: 20, borderWidth: 1, borderColor: "#ECE9F2", shadowColor: "#251D4C", shadowOpacity: 0.06, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 3 },
   dangerCard: { borderColor: "#F2DCD7" },
   debugCard: { borderColor: "#D5E5DC" },
+  universalQrCard: { marginTop: 12 },
   cardTopRow: { flexDirection: "row", alignItems: "flex-start", gap: 14 },
   primaryIcon: { width: 48, height: 48, borderRadius: 15, backgroundColor: "#EFECFF", alignItems: "center", justifyContent: "center" },
   dangerIcon: { width: 48, height: 48, borderRadius: 15, backgroundColor: "#FFF0EC", alignItems: "center", justifyContent: "center" },
@@ -150,6 +210,8 @@ const styles = StyleSheet.create({
   dangerButtonText: { color: "#D85C4A", fontSize: 15, fontWeight: "700" },
   debugButton: { height: 50, borderRadius: 15, marginTop: 20, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#EAF4EE", borderWidth: 1, borderColor: "#CDE0D4" },
   debugButtonText: { color: "#4F7C66", fontSize: 15, fontWeight: "700" },
+  universalQrImage: { alignItems: "center", gap: 14, marginTop: 20, padding: 20, borderRadius: 18, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#D5E5DC" },
+  universalQrBrand: { color: "#201C2B", fontSize: 16, fontWeight: "800" },
   buttonPressed: { transform: [{ scale: 0.985 }], opacity: 0.9 },
   securityNote: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 24 },
   securityNoteText: { color: "#888397", fontSize: 12 },

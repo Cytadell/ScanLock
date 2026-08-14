@@ -4,7 +4,6 @@ import {
   requestAuthorization,
   selectApps,
 } from "@/services/appBlocker";
-import { setLocked } from "@/services/lockStorage";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert } from "react-native";
@@ -74,7 +73,6 @@ export function useSettings() {
       }
 
       await disableBlocking();
-      await setLocked(false);
       Alert.alert("Unlocked", "QR Brick has been disabled.");
     } catch (error) {
       console.error("Could not emergency unlock:", error);

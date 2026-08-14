@@ -4,6 +4,7 @@ import * as Crypto from "expo-crypto";
 const QR_KEY_ID_KEY = "scanlock:qr-key-id:v1";
 const QR_PAYLOAD_TYPE = "scanlock-key";
 const QR_PAYLOAD_VERSION = 1;
+const UNIVERSAL_QR_KEY_ID = "scanlock-universal-key";
 
 export type ScanLockQrPayload = {
   type: typeof QR_PAYLOAD_TYPE;
@@ -17,9 +18,14 @@ export async function getOrCreateQrPayload(): Promise<string> {
   return encodeQrPayload(await getOrCreateKeyId());
 }
 
+export function generateUniversalQrPayload(): string {
+  return encodeQrPayload(UNIVERSAL_QR_KEY_ID);
+}
+
 export async function validateQrPayload(value: string): Promise<boolean> {
   const payload = parseQrPayload(value);
   if (!payload) return false;
+  if (payload.keyId === UNIVERSAL_QR_KEY_ID) return true;
 
   const savedKeyId = await AsyncStorage.getItem(QR_KEY_ID_KEY);
   return savedKeyId !== null && payload.keyId === savedKeyId;

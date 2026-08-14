@@ -32,6 +32,10 @@ export const expoGoAppBlocker = {
     return selectedAppCount > 0;
   },
 
+  getLocked(): boolean {
+    return blockingEnabled;
+  },
+
   async enableBlocking(): Promise<void> {
     blockingEnabled = true;
   },
@@ -45,8 +49,4 @@ export const expoGoAppBlocker = {
     selectedAppCount = 0;
   },
 
-  // Kept internally so the placeholder models both sides of the native state.
-  isBlockingEnabled(): boolean {
-    return blockingEnabled;
-  },
 };

@@ -36,6 +36,10 @@ public final class AppBlockerModule: Module {
             AppSelectionStore.shared.hasSelection()
         }
 
+        Function("getLocked") {
+            AppBlocker.shared.isLocked
+        }
+
         AsyncFunction("enableBlocking") {
             try AppBlocker.shared.enable()
         }

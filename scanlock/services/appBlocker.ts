@@ -12,6 +12,7 @@ type AppBlockerNativeModule = {
   isAuthorized(): boolean;
   getSelectedAppCount(): number;
   hasSelection(): boolean;
+  getLocked(): boolean;
   enableBlocking(): Promise<void>;
   disableBlocking(): Promise<void>;
   clearSelection(): Promise<void>;
@@ -57,6 +58,10 @@ export function isAuthorized(): boolean {
 
 export function hasSelection(): boolean {
   return requireAppBlocker().hasSelection();
+}
+
+export function getLocked(): boolean {
+  return requireAppBlocker().getLocked();
 }
 
 export async function enableBlocking(): Promise<void> {

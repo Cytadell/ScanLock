@@ -8,6 +8,7 @@ declare class AppBlockerModule extends NativeModule {
   isAuthorized(): boolean;
   getSelectedAppCount(): number;
   hasSelection(): boolean;
+  getLocked(): boolean;
   enableBlocking(): Promise<void>;
   disableBlocking(): Promise<void>;
   clearSelection(): Promise<void>;
