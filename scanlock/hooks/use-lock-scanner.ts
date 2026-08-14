@@ -1,4 +1,9 @@
-import { getLocked, requestAuthorization, setBlockingEnabled } from "@/services/appBlocker";
+import {
+  getLocked,
+  isAuthorized,
+  requestAuthorization,
+  setBlockingEnabled,
+} from "@/services/appBlocker";
 import { validateQrPayload } from "@/services/qrCode";
 import { BarcodeScanningResult, useCameraPermissions } from "expo-camera";
 import * as Haptics from "expo-haptics";
@@ -54,6 +59,17 @@ export function useLockScanner() {
     scanLockRef.current = false;
     setErrorMessage(undefined);
     setTorchEnabled(false);
+
+    if (!locked) {
+      try {
+        const authorized = isAuthorized() || (await requestAuthorization());
+        if (!authorized) return;
+      } catch (error) {
+        console.error("Could not request app blocking permission:", error);
+        return;
+      }
+    }
+
     setIsOpen(true);
 
     if (!permission?.granted) {
@@ -66,7 +82,7 @@ export function useLockScanner() {
     }
 
     setStatus("scanning");
-  }, [permission?.granted, requestPermission]);
+  }, [locked, permission?.granted, requestPermission]);
 
   const handleBarcodeScanned = useCallback(
     async (result: BarcodeScanningResult) => {

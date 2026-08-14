@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from "@testing-library/react-native";
 import { useLockScanner } from "@/hooks/use-lock-scanner";
 
 const mockGetLocked = jest.fn();
+const mockIsAuthorized = jest.fn();
 const mockRequestAuthorization = jest.fn();
 const mockSetBlockingEnabled = jest.fn();
 const mockValidateQrPayload = jest.fn();
@@ -15,6 +16,7 @@ let mockCameraPermission: { granted: boolean } | null = { granted: true };
 
 jest.mock("@/services/appBlocker", () => ({
   getLocked: () => mockGetLocked(),
+  isAuthorized: () => mockIsAuthorized(),
   requestAuthorization: () => mockRequestAuthorization(),
   setBlockingEnabled: (enabled: boolean) => mockSetBlockingEnabled(enabled),
 }));
@@ -52,6 +54,7 @@ describe("useLockScanner", () => {
     jest.clearAllMocks();
     mockCameraPermission = { granted: true };
     mockGetLocked.mockReturnValue(false);
+    mockIsAuthorized.mockReturnValue(true);
     mockRequestPermission.mockResolvedValue({ granted: true });
     mockValidateQrPayload.mockResolvedValue(true);
     mockRequestAuthorization.mockResolvedValue(true);
@@ -79,7 +82,51 @@ describe("useLockScanner", () => {
 
     expect(result.current.isOpen).toBe(true);
     expect(result.current.status).toBe("scanning");
+    expect(mockIsAuthorized).toHaveBeenCalledTimes(1);
+    expect(mockRequestAuthorization).not.toHaveBeenCalled();
     expect(mockRequestPermission).not.toHaveBeenCalled();
+  });
+
+  it("requests Screen Time permission before opening the lock scanner", async () => {
+    mockIsAuthorized.mockReturnValue(false);
+    const { result } = await renderHook(() => useLockScanner());
+
+    await act(async () => {
+      await result.current.open();
+    });
+
+    expect(mockRequestAuthorization).toHaveBeenCalledTimes(1);
+    expect(result.current.isOpen).toBe(true);
+    expect(result.current.status).toBe("scanning");
+  });
+
+  it("does not open the scanner when Screen Time permission is denied", async () => {
+    mockIsAuthorized.mockReturnValue(false);
+    mockRequestAuthorization.mockResolvedValue(false);
+    mockCameraPermission = { granted: false };
+    const { result } = await renderHook(() => useLockScanner());
+
+    await act(async () => {
+      await result.current.open();
+    });
+
+    expect(mockRequestAuthorization).toHaveBeenCalledTimes(1);
+    expect(mockRequestPermission).not.toHaveBeenCalled();
+    expect(result.current.isOpen).toBe(false);
+  });
+
+  it("opens the unlock scanner without requesting Screen Time permission", async () => {
+    mockGetLocked.mockReturnValue(true);
+    mockIsAuthorized.mockReturnValue(false);
+    const { result } = await renderHook(() => useLockScanner());
+
+    await act(async () => {
+      await result.current.open();
+    });
+
+    expect(mockIsAuthorized).not.toHaveBeenCalled();
+    expect(mockRequestAuthorization).not.toHaveBeenCalled();
+    expect(result.current.isOpen).toBe(true);
   });
 
   it("requests missing camera permission", async () => {
