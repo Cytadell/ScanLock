@@ -11,15 +11,20 @@ final class AppPickerPresenter {
     func present() async throws -> [String: Int] {
         try await withCheckedThrowingContinuation { continuation in
             do {
-                try presentPicker { selection in
-                    continuation.resume(returning: [
-                        "count": selection.applicationTokens.count
-                            + selection.categoryTokens.count
-                            + selection.webDomainTokens.count,
-                        "applicationCount": selection.applicationTokens.count,
-                        "categoryCount": selection.categoryTokens.count,
-                        "webDomainCount": selection.webDomainTokens.count,
-                    ])
+                try presentPicker { result in
+                    switch result {
+                    case .success(let selection):
+                        continuation.resume(returning: [
+                            "count": selection.applicationTokens.count
+                                + selection.categoryTokens.count
+                                + selection.webDomainTokens.count,
+                            "applicationCount": selection.applicationTokens.count,
+                            "categoryCount": selection.categoryTokens.count,
+                            "webDomainCount": selection.webDomainTokens.count,
+                        ])
+                    case .failure(let error):
+                        continuation.resume(throwing: error)
+                    }
                 }
             } catch {
                 continuation.resume(throwing: error)
@@ -29,7 +34,7 @@ final class AppPickerPresenter {
 
     @MainActor
     private func presentPicker(
-        onFinished: @escaping (FamilyActivitySelection) -> Void
+        onFinished: @escaping (Result<FamilyActivitySelection, Error>) -> Void
     ) throws {
         guard
             let rootViewController = UIApplication.shared.connectedScenes
@@ -45,9 +50,12 @@ final class AppPickerPresenter {
         var hostingController: UIHostingController<AppPickerView>!
 
         let pickerView = AppPickerView { selection in
-            try? AppSelectionStore.shared.save(selection)
+            let result = Result { () -> FamilyActivitySelection in
+                try AppBlocker.shared.saveSelection(selection)
+                return selection
+            }
             hostingController.dismiss(animated: true) {
-                onFinished(selection)
+                onFinished(result)
             }
         }
 

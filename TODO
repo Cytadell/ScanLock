@@ -1,7 +1,7 @@
 1. Make a universal scanlock for debug (not that security really matters for this) (CLEAR)
 2. Make an isLocking Enabled native rather than having a seperate async stored locked bool
-3. Make it so scanlock cannot lock itself
-3. Build system for handling poorly timed deletion and leftover shield risk
+3. Make it so scanlock cannot lock itself (Effectively cleared. turns out its impossible thanks apple)
+3. Build system for handling poorly timed deletion and leftover shield risk (It looks like its okay I tested it)
 4. Go over enabling and disabling steps and handle for all fail point or partial success/fail cases
 5. Handle how the QR code should be stored (maybe move to expo secure store)
 6. ADD AUTOMATED TESTS!

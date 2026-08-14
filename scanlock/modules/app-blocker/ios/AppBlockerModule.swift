@@ -21,6 +21,10 @@ public final class AppBlockerModule: Module {
                 throw AppBlockerModuleError.notAuthorized
             }
 
+            guard try AppBlocker.shared.getLocked() == false else {
+                throw AppBlockerError.selectionLocked
+            }
+
             return try await AppPickerPresenter.shared.present()
         }
 
@@ -37,20 +41,15 @@ public final class AppBlockerModule: Module {
         }
 
         Function("getLocked") {
-            AppBlocker.shared.isLocked
+            try AppBlocker.shared.getLocked()
         }
 
-        AsyncFunction("enableBlocking") {
-            try AppBlocker.shared.enable()
-        }
-
-        AsyncFunction("disableBlocking") {
-            AppBlocker.shared.disable()
+        AsyncFunction("setBlockingEnabled") { (enabled: Bool) in
+            try AppBlocker.shared.setBlockingEnabled(enabled)
         }
 
         AsyncFunction("clearSelection") {
-            AppBlocker.shared.disable()
-            AppSelectionStore.shared.clear()
+            try AppBlocker.shared.clearSelection()
         }
     }
 }

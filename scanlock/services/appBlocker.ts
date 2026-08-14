@@ -1,10 +1,10 @@
-import type { BlockedAppSelection } from "@/modules/app-blocker";
+import type { BlockedAppSelection, BlockingResult } from "@/modules/app-blocker";
 import { expoGoAppBlocker } from "@/services/appBlocker.expoGo";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import { requireOptionalNativeModule } from "expo-modules-core";
 import { Platform } from "react-native";
 
-export type { BlockedAppSelection };
+export type { BlockedAppSelection, BlockingResult };
 
 type AppBlockerNativeModule = {
   requestAuthorization(): Promise<boolean>;
@@ -13,8 +13,7 @@ type AppBlockerNativeModule = {
   getSelectedAppCount(): number;
   hasSelection(): boolean;
   getLocked(): boolean;
-  enableBlocking(): Promise<void>;
-  disableBlocking(): Promise<void>;
+  setBlockingEnabled(enabled: boolean): Promise<BlockingResult>;
   clearSelection(): Promise<void>;
 };
 
@@ -64,12 +63,8 @@ export function getLocked(): boolean {
   return requireAppBlocker().getLocked();
 }
 
-export async function enableBlocking(): Promise<void> {
-  await requireAppBlocker().enableBlocking();
-}
-
-export async function disableBlocking(): Promise<void> {
-  await requireAppBlocker().disableBlocking();
+export async function setBlockingEnabled(enabled: boolean): Promise<BlockingResult> {
+  return requireAppBlocker().setBlockingEnabled(enabled);
 }
 
 export async function clearSelection(): Promise<void> {

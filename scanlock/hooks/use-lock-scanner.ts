@@ -1,4 +1,4 @@
-import { disableBlocking, enableBlocking, getLocked, requestAuthorization } from "@/services/appBlocker";
+import { getLocked, requestAuthorization, setBlockingEnabled } from "@/services/appBlocker";
 import { validateQrPayload } from "@/services/qrCode";
 import { BarcodeScanningResult, useCameraPermissions } from "expo-camera";
 import * as Haptics from "expo-haptics";
@@ -94,15 +94,19 @@ export function useLockScanner() {
       const nextLocked = !locked;
 
       try {
-        const authorized = await requestAuthorization();
-        if (!authorized) {
-          throw new Error("App blocking permission is required to update your apps.");
+        if (nextLocked) {
+          const authorized = await requestAuthorization();
+          if (!authorized) {
+            throw new Error("App blocking permission is required to update your apps.");
+          }
         }
 
-        if (nextLocked) await enableBlocking();
-        else await disableBlocking();
+        const result = await setBlockingEnabled(nextLocked);
+        if (result.locked !== nextLocked) {
+          throw new Error("The blocking state could not be verified.");
+        }
 
-        setLockedState(nextLocked);
+        setLockedState(result.locked);
         setStatus("success");
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 

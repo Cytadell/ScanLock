@@ -1,6 +1,6 @@
 import { NativeModule, requireNativeModule } from "expo";
 
-import type { BlockedAppSelection } from "./AppBlocker.types";
+import type { BlockedAppSelection, BlockingResult } from "./AppBlocker.types";
 
 declare class AppBlockerModule extends NativeModule {
   requestAuthorization(): Promise<boolean>;
@@ -9,8 +9,7 @@ declare class AppBlockerModule extends NativeModule {
   getSelectedAppCount(): number;
   hasSelection(): boolean;
   getLocked(): boolean;
-  enableBlocking(): Promise<void>;
-  disableBlocking(): Promise<void>;
+  setBlockingEnabled(enabled: boolean): Promise<BlockingResult>;
   clearSelection(): Promise<void>;
 }
 

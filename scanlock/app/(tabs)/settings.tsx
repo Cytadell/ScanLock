@@ -17,7 +17,7 @@ import QRCode from "react-native-qrcode-svg";
 import { captureRef } from "react-native-view-shot";
 
 export default function SettingsScreen() {
-  const { selectedAppCount, selectBlockedApps, requestEmergencyUnlock } = useSettings();
+  const { selectedAppCount, locked, selectBlockedApps, requestEmergencyUnlock } = useSettings();
   const replayOnboarding = useOnboardingReplay();
   const universalQrRef = useRef<View>(null);
   const universalQrPayload = generateUniversalQrPayload();
@@ -83,10 +83,18 @@ export default function SettingsScreen() {
 
           <Pressable
             accessibilityRole="button"
+            accessibilityState={{ disabled: locked }}
+            disabled={locked}
             onPress={selectBlockedApps}
-            style={({ pressed }) => [styles.primaryButton, pressed && styles.buttonPressed]}
+            style={({ pressed }) => [
+              styles.primaryButton,
+              locked && styles.buttonDisabled,
+              pressed && styles.buttonPressed,
+            ]}
           >
-            <Text style={styles.primaryButtonText}>Choose apps</Text>
+            <Text style={styles.primaryButtonText}>
+              {locked ? "Unlock to change apps" : "Choose apps"}
+            </Text>
             <MaterialIcons name="chevron-right" size={22} color="#FFFFFF" />
           </Pressable>
         </View>
@@ -213,6 +221,7 @@ const styles = StyleSheet.create({
   universalQrImage: { alignItems: "center", gap: 14, marginTop: 20, padding: 20, borderRadius: 18, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#D5E5DC" },
   universalQrBrand: { color: "#201C2B", fontSize: 16, fontWeight: "800" },
   buttonPressed: { transform: [{ scale: 0.985 }], opacity: 0.9 },
+  buttonDisabled: { opacity: 0.55 },
   securityNote: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 24 },
   securityNoteText: { color: "#888397", fontSize: 12 },
 });

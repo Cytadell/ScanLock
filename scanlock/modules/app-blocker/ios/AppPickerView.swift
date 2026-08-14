@@ -20,9 +20,6 @@ struct AppPickerView: View {
                 isPresented: $pickerPresented,
                 selection: $selection
             )
-            .onChange(of: selection) { newSelection in
-                try? AppSelectionStore.shared.save(newSelection)
-            }
             .onChange(of: pickerPresented) { isPresented in
                 guard !isPresented else { return }
                 onFinished(selection)

@@ -1,7 +1,8 @@
 import {
-  disableBlocking,
+  getLocked,
   getSelectedAppCount,
   requestAuthorization,
+  setBlockingEnabled,
   selectApps,
 } from "@/services/appBlocker";
 import { useFocusEffect } from "expo-router";
@@ -10,6 +11,7 @@ import { Alert } from "react-native";
 
 export function useSettings() {
   const [selectedAppCount, setSelectedAppCount] = useState(0);
+  const [locked, setLocked] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -19,6 +21,12 @@ export function useSettings() {
         .then((count) => active && setSelectedAppCount(count))
         .catch((error) => console.error("Could not load selected app count:", error));
 
+      try {
+        setLocked(getLocked());
+      } catch (error) {
+        console.error("Could not load blocking state:", error);
+      }
+
       return () => {
         active = false;
       };
@@ -26,6 +34,14 @@ export function useSettings() {
   );
 
   async function selectBlockedApps() {
+    if (locked) {
+      Alert.alert(
+        "Unlock Required",
+        "Unlock ScanLock before changing the blocked app selection."
+      );
+      return;
+    }
+
     try {
       const authorized = await requestAuthorization();
 
@@ -62,17 +78,8 @@ export function useSettings() {
 
   async function performEmergencyUnlock() {
     try {
-      const authorized = await requestAuthorization();
-
-      if (!authorized) {
-        Alert.alert(
-          "Permission Required",
-          "Screen Time permission is required to disable app blocking."
-        );
-        return;
-      }
-
-      await disableBlocking();
+      const result = await setBlockingEnabled(false);
+      setLocked(result.locked);
       Alert.alert("Unlocked", "QR Brick has been disabled.");
     } catch (error) {
       console.error("Could not emergency unlock:", error);
@@ -82,6 +89,7 @@ export function useSettings() {
 
   return {
     selectedAppCount,
+    locked,
     selectBlockedApps,
     requestEmergencyUnlock,
   };

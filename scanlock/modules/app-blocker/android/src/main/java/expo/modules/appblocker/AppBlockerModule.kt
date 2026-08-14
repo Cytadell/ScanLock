@@ -21,11 +21,7 @@ class AppBlockerModule : Module() {
     Function("hasSelection") { false }
     Function("getLocked") { false }
 
-    AsyncFunction("enableBlocking") {
-      throw AppBlockerUnavailableException()
-    }
-
-    AsyncFunction("disableBlocking") {
+    AsyncFunction("setBlockingEnabled") { _: Boolean ->
       throw AppBlockerUnavailableException()
     }
 
