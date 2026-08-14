@@ -10,7 +10,10 @@
     },
     "preview": {
       "distribution": "internal",
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_ENABLE_UNIVERSAL_QR": "true"
+      }
     },
     "production": {
       "autoIncrement": true

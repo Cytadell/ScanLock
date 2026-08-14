@@ -6,6 +6,9 @@ const QR_PAYLOAD_TYPE = "scanlock-key";
 const QR_PAYLOAD_VERSION = 1;
 const UNIVERSAL_QR_KEY_ID = "scanlock-universal-key";
 
+export const isUniversalQrEnabled =
+  __DEV__ || process.env.EXPO_PUBLIC_ENABLE_UNIVERSAL_QR === "true";
+
 export type ScanLockQrPayload = {
   type: typeof QR_PAYLOAD_TYPE;
   version: typeof QR_PAYLOAD_VERSION;
@@ -19,13 +22,17 @@ export async function getOrCreateQrPayload(): Promise<string> {
 }
 
 export function generateUniversalQrPayload(): string {
+  if (!isUniversalQrEnabled) {
+    throw new Error("The universal QR code is disabled in this build.");
+  }
+
   return encodeQrPayload(UNIVERSAL_QR_KEY_ID);
 }
 
 export async function validateQrPayload(value: string): Promise<boolean> {
   const payload = parseQrPayload(value);
   if (!payload) return false;
-  if (payload.keyId === UNIVERSAL_QR_KEY_ID) return true;
+  if (isUniversalQrEnabled && payload.keyId === UNIVERSAL_QR_KEY_ID) return true;
 
   const savedKeyId = await AsyncStorage.getItem(QR_KEY_ID_KEY);
   return savedKeyId !== null && payload.keyId === savedKeyId;

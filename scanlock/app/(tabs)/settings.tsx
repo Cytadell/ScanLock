@@ -1,6 +1,9 @@
 import { useSettings } from "@/hooks/use-settings";
 import { useOnboardingReplay } from "@/hooks/use-onboarding-replay";
-import { generateUniversalQrPayload } from "@/services/qrCode";
+import {
+  generateUniversalQrPayload,
+  isUniversalQrEnabled,
+} from "@/services/qrCode";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Sharing from "expo-sharing";
 import { useRef } from "react";
@@ -20,7 +23,9 @@ export default function SettingsScreen() {
   const { selectedAppCount, locked, selectBlockedApps, requestEmergencyUnlock } = useSettings();
   const replayOnboarding = useOnboardingReplay();
   const universalQrRef = useRef<View>(null);
-  const universalQrPayload = generateUniversalQrPayload();
+  const universalQrPayload = isUniversalQrEnabled
+    ? generateUniversalQrPayload()
+    : "";
 
   async function shareUniversalQrCode() {
     if (!universalQrRef.current) return;
@@ -149,6 +154,14 @@ export default function SettingsScreen() {
                 <MaterialIcons name="replay" size={20} color="#4F7C66" />
                 <Text style={styles.debugButtonText}>Replay onboarding</Text>
               </Pressable>
+            </View>
+          </>
+        )}
+
+        {isUniversalQrEnabled && (
+          <>
+            <View style={styles.sectionLabelRow}>
+              <Text style={styles.sectionLabel}>TESTING · NON-PRODUCTION</Text>
             </View>
 
             <View style={[styles.card, styles.debugCard, styles.universalQrCard]}>
