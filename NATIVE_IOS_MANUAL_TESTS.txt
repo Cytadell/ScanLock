@@ -1,0 +1,202 @@
+SCANLOCK NATIVE iOS MANUAL TEST CHECKLIST
+=========================================
+
+Test build information
+----------------------
+[ ] Record app version/build number:
+[ ] Record iOS version:
+[ ] Record iPhone/iPad model:
+[ ] Record build profile (development/preview/production):
+[ ] Confirm this is a native development or release build, not Expo Go.
+[ ] Confirm whether the universal debug QR feature is enabled or disabled.
+
+Run the critical tests on at least:
+[ ] The oldest supported iOS version (currently iOS 16).
+[ ] The newest supported iOS version.
+[ ] A physical iPhone (Family Controls cannot be fully validated in a simulator).
+[ ] A small-screen iPhone.
+[ ] An iPad, because tablet support is enabled.
+
+
+1. Fresh install and onboarding
+-------------------------------
+[ ] Install the app fresh and confirm onboarding appears exactly once.
+[ ] Complete onboarding normally and confirm it stays completed after relaunch.
+[ ] Force-quit during every onboarding step, reopen, and confirm the app remains usable.
+[ ] Skip onboarding and confirm the app clearly shows that no apps are selected.
+[ ] Deny Screen Time authorization during onboarding and confirm a useful message appears.
+[ ] Grant Screen Time authorization during onboarding and confirm the Apple app picker opens.
+[ ] Cancel the Apple app picker and confirm the app does not report a selection that was not saved.
+[ ] Select apps, categories, and websites and confirm the displayed selection count updates.
+[ ] Confirm a QR key can be created during onboarding.
+[ ] Confirm onboarding handles QR creation failure without becoming permanently stuck.
+[ ] Replay onboarding from Settings and confirm existing configuration is not accidentally erased.
+
+
+2. Screen Time authorization
+----------------------------
+[ ] Request Screen Time authorization for the first time and approve it.
+[ ] Request authorization and deny/cancel it.
+[ ] Attempt to open the app selector without authorization and confirm it is blocked with a useful prompt.
+[ ] Attempt to lock without authorization and confirm no shields are applied.
+[ ] Revoke authorization in iOS Settings while ScanLock is open, then return to the app.
+[ ] Revoke authorization while ScanLock is backgrounded, then reopen it.
+[ ] Revoke authorization while apps are locked and verify the resulting shield state and recovery path.
+[ ] Restore authorization after revoking it and confirm selection and lock controls recover.
+[ ] Confirm authorization errors distinguish denial from a missing/broken native module.
+[ ] Confirm the app never claims it is locked solely because an operation was requested.
+
+
+3. App, category, and website selection
+---------------------------------------
+[ ] Save a selection containing one app only.
+[ ] Save a selection containing multiple apps.
+[ ] Save a category-only selection.
+[ ] Save a website-only selection.
+[ ] Save a mixed selection of apps, categories, and websites.
+[ ] Select an entire category and verify its apps are shielded.
+[ ] Cancel the picker after changing choices and confirm the previous saved selection remains correct.
+[ ] Replace an existing selection while unlocked and confirm only the new selection is used.
+[ ] Clear all choices in the picker and confirm the app reports that nothing is selected.
+[ ] Relaunch the app and confirm the selected token data and displayed count persist.
+[ ] Reboot the device and confirm the selection persists.
+[ ] Confirm private app/category names are not logged or exposed by ScanLock.
+[ ] While locked, attempt to open or change the selection and confirm it is rejected.
+[ ] After unlocking, confirm the selection can be changed again.
+
+
+4. Locking
+----------
+[ ] With no apps selected, tap the lock-to-scan button and confirm the scanner does not open.
+[ ] With no apps selected, confirm the prompt directs the user to select apps.
+[ ] With a valid selection, scan the correct QR code while unlocked and confirm locking succeeds.
+[ ] Verify every selected app is shielded.
+[ ] Verify selected websites and categories are shielded when included.
+[ ] Verify non-selected apps and websites remain usable.
+[ ] Confirm ScanLock itself is not shielded and remains available for unlocking.
+[ ] Confirm the UI reports locked only after the native shield state is verified.
+[ ] Scan an invalid QR code while unlocked and confirm nothing is locked.
+[ ] Scan another user's ScanLock QR code and confirm nothing is locked.
+[ ] Scan malformed, empty, ordinary website, and non-ScanLock QR codes.
+[ ] Scan the valid QR repeatedly/rapidly and confirm only one lock transition occurs.
+[ ] Background the app immediately after scanning and confirm the final state is consistent.
+[ ] Force-quit immediately after scanning and confirm recovery produces a consistent state.
+[ ] Lock, force-quit normally, reopen, and confirm the app derives locked state from native shields.
+[ ] Lock, reboot the device, and confirm shields and reported state are consistent after reboot.
+[ ] Lock with Low Power Mode enabled.
+[ ] Lock while the device has no network connection.
+[ ] Lock with VoiceOver enabled and confirm status is announced understandably.
+
+
+5. Unlocking and emergency recovery
+-----------------------------------
+[ ] Scan the correct QR while locked and confirm all ScanLock shields are removed.
+[ ] With no saved app selection, confirm unlocking remains available when shields exist.
+[ ] Confirm the no-selection lock guard never blocks an unlock attempt.
+[ ] Scan an invalid or old QR while locked and confirm shields remain active.
+[ ] Scan another user's QR while locked and confirm shields remain active.
+[ ] Scan the valid QR repeatedly/rapidly and confirm only one unlock transition occurs.
+[ ] Background the app immediately after requesting unlock and confirm the final state is consistent.
+[ ] Force-quit immediately after requesting unlock and confirm recovery does not leave stale shields.
+[ ] Use Emergency Unlock, cancel its confirmation, and confirm shields remain active.
+[ ] Use Emergency Unlock and confirm every ScanLock shield is removed.
+[ ] Use Emergency Unlock with Screen Time authorization revoked and record whether recovery succeeds.
+[ ] Relaunch and reboot after unlocking and confirm shields do not return.
+[ ] Confirm unlock is idempotent: unlocking an already-unlocked state causes no damage or false error.
+[ ] Confirm clearing the selection while unlocked also leaves no shields behind.
+
+
+6. Interrupted operations, journal recovery, and deletion risk
+--------------------------------------------------------------
+[ ] Force-quit at the earliest possible moment during a lock request.
+[ ] Force-quit immediately after shields visibly appear during locking.
+[ ] Force-quit at the earliest possible moment during an unlock request.
+[ ] Force-quit immediately after shields visibly disappear during unlocking.
+[ ] Reopen after each interruption and confirm the previous state is restored or the intended state is safely completed.
+[ ] Repeat interrupted lock/unlock tests several times to look for timing-sensitive failures.
+[ ] Reboot during/just after a lock transition and verify recovery after startup.
+[ ] Reboot during/just after an unlock transition and verify recovery after startup.
+[ ] Confirm a recovery failure presents actionable guidance and does not falsely report success.
+[ ] Offload the app while unlocked, reinstall it, and confirm expected selection/key persistence behavior.
+[ ] Offload the app while locked, reinstall it, and confirm shields can be removed.
+[ ] Delete the app while unlocked and confirm no shields remain.
+[ ] Delete the app while locked and verify whether iOS removes its shields; record the exact OS/device result.
+[ ] Reinstall after deletion while locked and confirm the user has a documented recovery path.
+[ ] Install an upgrade over a locked build and confirm the new build can detect and unlock the shields.
+[ ] Install an upgrade over an unlocked build and confirm configuration remains valid.
+
+
+7. QR key lifecycle
+-------------------
+[ ] Generate a QR key and verify the displayed QR scans successfully.
+[ ] Share/save the QR image and verify the exported image scans successfully.
+[ ] Print the QR at expected sizes and test it in normal and poor lighting.
+[ ] Test scanning from another screen at low and high brightness.
+[ ] Force-quit and reboot, then confirm the existing QR remains valid.
+[ ] Replace/rotate the QR key while unlocked and confirm the old QR stops working.
+[ ] Confirm the new QR works for both locking and unlocking.
+[ ] Attempt to rotate the QR key while locked and confirm the app does not strand the user without a working unlock key.
+[ ] Cancel key-replacement confirmation and confirm the existing key remains unchanged.
+[ ] Force-quit during key replacement and confirm either the old or new key remains consistently usable.
+[ ] Confirm the universal debug QR works only in builds where it is explicitly enabled.
+[ ] Confirm the universal debug QR is rejected in production builds.
+
+
+8. Camera permission and scanning UI
+-----------------------------------
+[ ] Grant camera permission and confirm the scanner opens normally.
+[ ] Deny camera permission on first request and confirm a useful explanation appears.
+[ ] Confirm the denied-permission screen provides an Open Settings action.
+[ ] Grant permission from iOS Settings, return to ScanLock, and confirm scanning works without reinstalling.
+[ ] Revoke permission while the app is backgrounded and confirm the scanner updates on return.
+[ ] Test scanning in portrait on all target device sizes.
+[ ] Test scanning in landscape if rotation is supported anywhere in the final app.
+[ ] Test a small, distant, tilted, partially obscured, blurry, and low-contrast valid QR.
+[ ] Confirm multiple QR codes in the camera view cannot trigger conflicting transitions.
+[ ] Confirm leaving the scanner during verification does not create an incorrect lock state.
+[ ] Confirm the camera is released when leaving the scanner or backgrounding the app.
+
+
+9. Native failure messages and logging
+--------------------------------------
+[ ] Trigger no-selection, not-authorized, selection-locked, and recovery-related errors where feasible.
+[ ] Confirm each failure gives the user an accurate, actionable message.
+[ ] Confirm errors do not expose QR secrets, Screen Time tokens, or private app selections in logs.
+[ ] Confirm production builds do not rely only on console output for important failures.
+[ ] Confirm a missing native module produces a clear rebuild/unsupported-platform message.
+[ ] Confirm buttons cannot be double-submitted while a native operation is running.
+[ ] Confirm loading indicators stop after both success and failure.
+[ ] Confirm the UI never reports success after a rejected or rolled-back native operation.
+
+
+10. Accessibility and layout
+----------------------------
+[ ] Navigate onboarding, scanner, Get Lock, and Settings using VoiceOver.
+[ ] Confirm every icon-only control has a useful accessibility label and role.
+[ ] Confirm lock status changes are announced.
+[ ] Test all supported Dynamic Type sizes, including accessibility sizes.
+[ ] Confirm text does not clip or overlap on the smallest supported iPhone.
+[ ] Confirm layouts remain usable in Split View/multitasking on iPad if applicable.
+[ ] Confirm focus order is logical and alerts do not trap VoiceOver focus.
+[ ] Test Increase Contrast, Reduce Transparency, Reduce Motion, and Bold Text.
+[ ] Confirm controls have adequate touch targets and disabled controls are distinguishable.
+[ ] Confirm light and dark system appearance produce readable screens, or intentionally force one appearance.
+
+
+11. Production/TestFlight smoke test
+------------------------------------
+[ ] Install the exact TestFlight/release candidate build on a clean device.
+[ ] Confirm the Family Controls entitlement exists in the signed production build.
+[ ] Confirm camera and Screen Time permission descriptions are present and correct.
+[ ] Confirm the universal debug QR is disabled.
+[ ] Complete onboarding, select apps, create/share a key, lock, force-quit, reopen, and unlock.
+[ ] Reboot while locked and successfully unlock afterward.
+[ ] Confirm app icon, launch screen, name, version, support links, and privacy links are correct.
+[ ] Review device logs for crashes or native exceptions after the complete smoke test.
+
+
+Test completion notes
+---------------------
+[ ] Record every failure with build, device, iOS version, exact steps, expected result, actual result, screenshots/video, and whether shields remained active.
+[ ] Retest every fixed critical failure on both the oldest and newest supported iOS versions.
+[ ] Do not ship with any known path that can leave selected apps shielded without an available unlock or emergency-recovery path.
