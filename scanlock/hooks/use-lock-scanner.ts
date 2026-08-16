@@ -1,5 +1,6 @@
 import {
   getLocked,
+  hasSelection,
   isAuthorized,
   requestAuthorization,
   setBlockingEnabled,
@@ -9,6 +10,7 @@ import { BarcodeScanningResult, useCameraPermissions } from "expo-camera";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useRef, useState } from "react";
+import { Alert, Platform } from "react-native";
 
 export type ScanStatus =
   | "requesting-permission"
@@ -62,6 +64,14 @@ export function useLockScanner() {
 
     if (!locked) {
       try {
+        if (!hasSelection()) {
+          Alert.alert(
+            "Choose apps first",
+            "Open Settings and select at least one app, category, or website before locking."
+          );
+          return;
+        }
+
         const authorized = isAuthorized() || (await requestAuthorization());
         if (!authorized) return;
       } catch (error) {
@@ -113,7 +123,11 @@ export function useLockScanner() {
         if (nextLocked) {
           const authorized = await requestAuthorization();
           if (!authorized) {
-            throw new Error("App blocking permission is required to update your apps.");
+            throw new Error(
+              Platform.OS === "android"
+                ? "Enable ScanLock app blocking in Accessibility settings before locking apps."
+                : "App blocking permission is required to update your apps."
+            );
           }
         }
 

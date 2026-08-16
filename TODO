@@ -14,8 +14,8 @@
 Additional TODOs
 
 12. Add native Swift tests for locking, unlocking, interrupted-operation recovery, rollback, and journal failures
-13. Handle Screen Time authorization changes while the app is open and provide a clear recovery action if permission is revoked
-14. Add an Open Settings action when camera permission is denied
+13. Handle Screen Time authorization changes while the app is open and provide a clear recovery action if permission is revoked (This is basically fine CLEAR)
+14. Add an Open Settings action when camera permission is denied (ALREADY DONE)
 15. If no apps are selected, the lock-to-scan button should not open the scanner and should instead prompt the user to select apps. This check applies only when locking; unlocking must always remain available
 16. Complete release readiness: privacy policy, App Store privacy details, camera usage description, icons, splash screen, screenshots, support URL, store copy, TestFlight checklist, production smoke test, and Family Controls entitlement approval
 17. Replace the generated README, fix broken text encoding, document the architecture/build setup/security model, and remove or consolidate duplicated and unused public-repository artifacts

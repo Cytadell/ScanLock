@@ -24,7 +24,8 @@
     },
     "android": {
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.cytadelltime.scanlock"
     },
     "web": {
       "output": "static"

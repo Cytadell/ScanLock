@@ -7,11 +7,12 @@ import {
 } from "@/services/appBlocker";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { Alert } from "react-native";
+import { Alert, Platform } from "react-native";
 
 export function useSettings() {
   const [selectedAppCount, setSelectedAppCount] = useState(0);
   const [locked, setLocked] = useState(false);
+  const [debugLockChanging, setDebugLockChanging] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -48,7 +49,9 @@ export function useSettings() {
       if (!authorized) {
         Alert.alert(
           "Permission Required",
-          "Screen Time permission is required to select apps."
+          Platform.OS === "android"
+            ? "Enable ScanLock app blocking in Accessibility settings, then return to ScanLock."
+            : "Screen Time permission is required to select apps."
         );
         return;
       }
@@ -87,10 +90,52 @@ export function useSettings() {
     }
   }
 
+  async function toggleDebugLock() {
+    if (debugLockChanging) return;
+
+    const nextLocked = !locked;
+    if (nextLocked && selectedAppCount === 0) {
+      Alert.alert(
+        "Choose apps first",
+        "Select at least one blocked app before enabling the development lock."
+      );
+      return;
+    }
+
+    setDebugLockChanging(true);
+    try {
+      if (nextLocked) {
+        const authorized = await requestAuthorization();
+        if (!authorized) {
+          Alert.alert(
+            "Permission Required",
+            Platform.OS === "android"
+              ? "Enable ScanLock app blocking in Accessibility settings, then try again."
+              : "Screen Time permission is required to block apps."
+          );
+          return;
+        }
+      }
+
+      const result = await setBlockingEnabled(nextLocked);
+      setLocked(result.locked);
+    } catch (error) {
+      console.error("Could not toggle the development lock:", error);
+      Alert.alert(
+        "Debug lock failed",
+        error instanceof Error ? error.message : "Could not change the blocking state."
+      );
+    } finally {
+      setDebugLockChanging(false);
+    }
+  }
+
   return {
     selectedAppCount,
     locked,
+    debugLockChanging,
     selectBlockedApps,
     requestEmergencyUnlock,
+    toggleDebugLock,
   };
 }

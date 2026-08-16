@@ -1,0 +1,58 @@
+SCANLOCK ANDROID MANUAL TEST CHECKLIST
+=====================================
+
+Prerequisites
+-------------
+1. Install Android Studio with Android SDK Platform 36, Build Tools, Platform Tools,
+   and the Android Emulator.
+2. Create and boot a Pixel emulator using API 35 or 36 with Google APIs.
+3. From the scanlock directory run:
+     npm install
+     npx expo prebuild --platform android
+     npx expo run:android
+4. Install at least one harmless target app in the emulator.
+
+Authorization and selection
+---------------------------
+[ ] Open Settings > Blocked apps and tap Choose apps.
+[ ] Android Accessibility Settings opens when ScanLock is not authorized.
+[ ] The ScanLock service description clearly states that it detects selected apps.
+[ ] Enable the service and return; the native app picker opens.
+[ ] ScanLock and the current Home launcher are absent from the picker.
+[ ] Search filters apps without losing checked selections.
+[ ] Cancel leaves the prior selection unchanged.
+[ ] Save persists the selected count after closing and reopening ScanLock.
+
+Lock enforcement
+----------------
+[ ] Scan a valid QR and verify ScanLock reports locked.
+[ ] Launch a selected app; the ScanLock blocking screen replaces it.
+[ ] Back and Go to Home screen both return to the launcher.
+[ ] Launch an unselected app; it remains usable.
+[ ] Repeatedly switch to a blocked app; only one blocking screen is shown.
+[ ] Force-stop and reopen ScanLock; locked state and selection persist.
+[ ] Reboot the emulator; enforcement still works after Android reconnects the service.
+[ ] Attempt to change selected apps while locked; ScanLock rejects the change.
+
+Unlock and recovery
+-------------------
+[ ] Scan the valid QR while locked; selected apps become usable immediately.
+[ ] Emergency unlock also disables blocking immediately.
+[ ] Disable the Accessibility Service while locked, reopen ScanLock, and verify QR and
+    emergency unlock remain available.
+[ ] Clear the selection; ScanLock unlocks first and reports zero selected apps.
+[ ] Invalid QR data never changes the native lock state.
+
+Camera and lifecycle
+--------------------
+[ ] Grant and deny camera permission and verify both UI paths.
+[ ] Scan using the emulator virtual camera or a host webcam.
+[ ] Background ScanLock during a scan and return without duplicate transitions.
+[ ] Rotate/recreate system Settings while granting accessibility and verify ScanLock
+    rechecks the permission on return.
+
+Release-device follow-up
+------------------------
+[ ] Repeat enforcement, reboot, and camera checks on a physical Pixel.
+[ ] Repeat on at least one Samsung device because OEM background behavior differs.
+[ ] Verify the Play Console Accessibility API disclosure and prominent in-app consent.

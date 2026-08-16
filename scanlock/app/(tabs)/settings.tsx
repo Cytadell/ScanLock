@@ -20,7 +20,14 @@ import QRCode from "react-native-qrcode-svg";
 import { captureRef } from "react-native-view-shot";
 
 export default function SettingsScreen() {
-  const { selectedAppCount, locked, selectBlockedApps, requestEmergencyUnlock } = useSettings();
+  const {
+    selectedAppCount,
+    locked,
+    debugLockChanging,
+    selectBlockedApps,
+    requestEmergencyUnlock,
+    toggleDebugLock,
+  } = useSettings();
   const replayOnboarding = useOnboardingReplay();
   const universalQrRef = useRef<View>(null);
   const universalQrPayload = isUniversalQrEnabled
@@ -138,6 +145,49 @@ export default function SettingsScreen() {
             <View style={[styles.card, styles.debugCard]}>
               <View style={styles.cardTopRow}>
                 <View style={styles.debugIcon}>
+                  <MaterialIcons
+                    name={locked ? "lock" : "lock-open"}
+                    size={25}
+                    color="#4F7C66"
+                  />
+                </View>
+                <View style={styles.cardCopy}>
+                  <Text style={styles.cardTitle}>Lock state</Text>
+                  <Text style={styles.cardDescription}>
+                    Toggle native app blocking without scanning a QR code.
+                  </Text>
+                </View>
+              </View>
+
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ disabled: debugLockChanging, checked: locked }}
+                disabled={debugLockChanging}
+                onPress={toggleDebugLock}
+                style={({ pressed }) => [
+                  styles.debugButton,
+                  debugLockChanging && styles.buttonDisabled,
+                  pressed && styles.buttonPressed,
+                ]}
+              >
+                <MaterialIcons
+                  name={locked ? "lock-open" : "lock"}
+                  size={20}
+                  color="#4F7C66"
+                />
+                <Text style={styles.debugButtonText}>
+                  {debugLockChanging
+                    ? "Updating…"
+                    : locked
+                      ? "Disable lock without QR"
+                      : "Enable lock without QR"}
+                </Text>
+              </Pressable>
+            </View>
+
+            <View style={[styles.card, styles.debugCard, styles.debugStackedCard]}>
+              <View style={styles.cardTopRow}>
+                <View style={styles.debugIcon}>
                   <MaterialIcons name="bug-report" size={25} color="#4F7C66" />
                 </View>
                 <View style={styles.cardCopy}>
@@ -217,6 +267,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: "#FFFFFF", borderRadius: 24, padding: 20, borderWidth: 1, borderColor: "#ECE9F2", shadowColor: "#251D4C", shadowOpacity: 0.06, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 3 },
   dangerCard: { borderColor: "#F2DCD7" },
   debugCard: { borderColor: "#D5E5DC" },
+  debugStackedCard: { marginTop: 12 },
   universalQrCard: { marginTop: 12 },
   cardTopRow: { flexDirection: "row", alignItems: "flex-start", gap: 14 },
   primaryIcon: { width: 48, height: 48, borderRadius: 15, backgroundColor: "#EFECFF", alignItems: "center", justifyContent: "center" },

@@ -1,50 +1,126 @@
-# Welcome to your Expo app 👋
+# ScanLock
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+ScanLock is an Expo and React Native app that uses a QR code as a physical key for selected apps, categories, and websites. On iOS, it integrates with Apple's Family Controls and Managed Settings frameworks to apply and remove Screen Time shields.
 
-## Get started
+The project is under active development and is not release-ready. In particular, the Family Controls entitlement and all recovery paths must be validated on physical Apple devices before distribution.
 
-1. Install dependencies
+## How it works
 
-   ```bash
-   npm install
-   ```
+1. The user grants Screen Time authorization and chooses apps, categories, or websites with Apple's private activity picker.
+2. ScanLock creates a random identifier and encodes it in a versioned QR payload.
+3. Scanning the matching QR requests a lock or unlock transition.
+4. The native module journals the requested shield change, applies it, verifies the resulting state, and rolls back or recovers after an interrupted operation when necessary.
 
-2. Start the app
+ScanLock never receives the names of items chosen in Apple's picker. It stores Apple's opaque selection tokens locally and passes them back to the system when applying shields.
 
-   ```bash
-   npx expo start
-   ```
+## Technology
 
-In the output, you'll find options to open the app in a
+- Expo SDK 54, React Native 0.81, and React 19
+- Expo Router for navigation
+- TypeScript for application and native-bridge contracts
+- Swift with Family Controls and Managed Settings on iOS
+- Kotlin native module using an Accessibility Service and native blocking screen on Android
+- Jest and React Native Testing Library for automated application tests
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+The minimum configured iOS deployment target is 16.0. Tablet support is enabled.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Repository layout
 
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```text
+app/                         Expo Router screens and layouts
+components/                  Reusable UI and onboarding/scanner views
+hooks/                       Screen state machines and UI workflows
+services/                    QR, persistence, and native-module boundary
+modules/app-blocker/
+  src/                       TypeScript native-module contract
+  ios/                       Swift Family Controls implementation
+  android/                   Kotlin Android implementation
+tests/                       Jest component, hook, and service tests
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+`services/appBlocker.ts` is the application-facing boundary. It selects the real native module in development and production builds, and the in-memory `services/appBlocker.expoGo.ts` implementation in Expo Go. Jest mocks this boundary when testing UI workflows.
 
-## Learn more
+## Requirements
 
-To learn more about developing your project with Expo, look at the following resources:
+- Node.js 22.13 or newer
+- npm
+- An Expo account for EAS builds
+- For native iOS work: an Apple Developer account, Family Controls entitlement access, and a physical iPhone or iPad
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Install dependencies from this directory:
 
-## Join the community
+```sh
+npm install
+```
 
-Join our community of developers creating universal apps.
+## Development
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Start Metro:
+
+```sh
+npm start
+```
+
+Expo Go can exercise most JavaScript UI and the simulated app-blocker service, but it cannot validate real Family Controls shields. Use an iOS development build for the native picker, Screen Time authorization, shield state, and interruption recovery.
+
+Common commands:
+
+```sh
+npm run web
+npm run android
+npm run ios
+```
+
+On Windows PowerShell systems that block `.ps1` command shims, use `npm.cmd` and `npx.cmd` instead.
+
+## Verification
+
+Run all local checks before opening a pull request:
+
+```sh
+npx tsc --noEmit
+npm run lint
+npm test
+npm run test:coverage
+```
+
+Automated tests verify the TypeScript state machines, persistence, QR validation, and the native-module contract through mocks. They do not prove that Apple shields were applied. Use the repository's `NATIVE_IOS_MANUAL_TESTS.txt` checklist for physical-device validation.
+
+## Builds
+
+EAS profiles are defined in `eas.json`:
+
+- `development`: internal development-client build
+- `preview`: internal build with the universal debug QR enabled
+- `production`: store-oriented build with the universal debug QR disabled
+
+Typical commands are:
+
+```sh
+npx eas-cli build --platform ios --profile development
+npx eas-cli build --platform ios --profile preview
+npx eas-cli build --platform ios --profile production
+```
+
+JavaScript-only changes can be exercised against a compatible installed development client without rebuilding native code. Changes to Swift, Kotlin, native dependencies, entitlements, or native configuration require a new compatible build.
+
+## Security model
+
+- QR payloads contain a type, schema version, and random key identifier; they do not contain Screen Time tokens or selected-app names.
+- The QR identifier is stored locally with AsyncStorage. It is a capability used to authorize transitions, not an encryption key or account credential.
+- The universal debug QR is enabled in development and preview configurations. Production builds must keep it disabled and must verify that it is rejected.
+- Selection tokens remain local. Avoid logging QR payloads, tokens, or private selection data.
+- Unlocking remains available even when selection data or Screen Time authorization is missing. The native layer treats clearing shields as the recovery-first operation.
+- Native lock changes are journaled and verified to reduce the chance that an interrupted or partially failed transition leaves stale shields.
+
+This design cannot replace Apple platform protections. Anyone who possesses the active QR code can request the corresponding lock or unlock transition.
+
+## Release status
+
+Before release, complete the open items in the repository-level `TODO` file, the native manual-test checklist, App Store privacy metadata, support and privacy URLs, production assets, and Family Controls distribution-entitlement approval.
+
+## Contributing
+
+Keep native-module changes synchronized across the TypeScript contract, platform implementation, and tests. Do not commit generated `ios/`, `android/`, `.expo/`, `coverage/`, credentials, provisioning profiles, or local environment files.
+
+This repository does not currently declare an open-source license. All rights remain with the copyright holder unless a license is added.
