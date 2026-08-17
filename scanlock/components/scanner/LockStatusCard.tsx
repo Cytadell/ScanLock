@@ -3,6 +3,8 @@ import * as Haptics from "expo-haptics";
 import { useState } from "react";
 import { Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { PadlockQrCodeIcon } from "@/components/icons/PadlockQrCodeIcon";
+
 type Props = {
   locked: boolean;
   lockElapsed: string;
@@ -44,7 +46,7 @@ export function LockStatusCard({ locked, lockElapsed, onScan }: Props) {
         <View style={styles.headerRow}>
           <View style={styles.brandRow}>
             <View style={styles.brandMark}>
-              <MaterialIcons name="qr-code-2" size={22} color="#FFFFFF" />
+              <PadlockQrCodeIcon color="#FFFFFF" height={27} />
             </View>
             <Text style={styles.brand}>ScanLock</Text>
           </View>
