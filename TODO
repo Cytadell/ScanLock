@@ -9,7 +9,7 @@
 8. Create UI for locked apps (optional)
 9. add android integrations (MVP Cleared. Didn't do heavy tests on this)
 10.Make it so the scanner and the app selector (the later I think is already done) can only be opened with screen time Enabled (CLEARED)
-11. Clean up code basis to make a mirroring public github for this
+11. Clean up code basis to make a mirroring public github for this!!!!!!!!! (Need to move up folder might be a little messy)
 
 Additional TODOs
 
@@ -34,3 +34,9 @@ Additional TODOs
 Compliance TODOS:
 1. Complete release readiness: privacy policy, App Store privacy details, camera usage description, icons, splash screen, screenshots, support URL, store copy, TestFlight checklist, production smoke test, and Family Controls entitlement approval
 2. Complete an accessibility and device-layout pass: VoiceOver, Dynamic Type, contrast, reduced motion, touch targets, small iPhones, landscape where supported, and iPads
+
+
+8/18 plan:
+- Make it github public ready then make it public
+- Make basic compliance good
+- Prepare to test flight for ios 
