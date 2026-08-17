@@ -9,6 +9,7 @@ import * as Sharing from "expo-sharing";
 import { useRef } from "react";
 import {
   Alert,
+  Modal,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -24,8 +25,13 @@ export default function SettingsScreen() {
     selectedAppCount,
     locked,
     debugLockChanging,
+    emergencyUnlockVisible,
+    emergencyUnlockCountdown,
+    emergencyUnlockChanging,
     selectBlockedApps,
     requestEmergencyUnlock,
+    cancelEmergencyUnlock,
+    performEmergencyUnlock,
     toggleDebugLock,
   } = useSettings();
   const replayOnboarding = useOnboardingReplay();
@@ -60,6 +66,64 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <Modal
+        animationType="fade"
+        transparent
+        visible={emergencyUnlockVisible}
+        onRequestClose={cancelEmergencyUnlock}
+      >
+        <View style={styles.modalBackdrop}>
+          <View
+            accessibilityRole="alert"
+            accessibilityViewIsModal
+            style={styles.emergencyModal}
+          >
+            <View style={styles.modalWarningIcon}>
+              <MaterialIcons name="warning-amber" size={30} color="#D85C4A" />
+            </View>
+            <Text style={styles.modalTitle}>Are you sure?</Text>
+            <Text style={styles.modalDescription}>
+              Only use Emergency Unlock if this is an emergency. This will disable app blocking without your QR code.
+            </Text>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                emergencyUnlockCountdown > 0
+                  ? `Emergency unlock available in ${emergencyUnlockCountdown} seconds`
+                  : "Confirm emergency unlock"
+              }
+              accessibilityState={{
+                disabled: emergencyUnlockCountdown > 0 || emergencyUnlockChanging,
+              }}
+              disabled={emergencyUnlockCountdown > 0 || emergencyUnlockChanging}
+              onPress={performEmergencyUnlock}
+              style={({ pressed }) => [
+                styles.modalUnlockButton,
+                (emergencyUnlockCountdown > 0 || emergencyUnlockChanging) && styles.buttonDisabled,
+                pressed && styles.buttonPressed,
+              ]}
+            >
+              <Text style={styles.modalUnlockButtonText}>
+                {emergencyUnlockChanging
+                  ? "Unlocking…"
+                  : emergencyUnlockCountdown > 0
+                    ? `Wait ${emergencyUnlockCountdown}s`
+                    : "Emergency unlock now"}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              disabled={emergencyUnlockChanging}
+              onPress={cancelEmergencyUnlock}
+              style={({ pressed }) => [styles.modalCancelButton, pressed && styles.buttonPressed]}
+            >
+              <Text style={styles.modalCancelButtonText}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
       <ScrollView
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
@@ -288,4 +352,13 @@ const styles = StyleSheet.create({
   buttonDisabled: { opacity: 0.55 },
   securityNote: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 24 },
   securityNoteText: { color: "#888397", fontSize: 12 },
+  modalBackdrop: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, backgroundColor: "rgba(32, 28, 43, 0.58)" },
+  emergencyModal: { width: "100%", maxWidth: 390, alignItems: "center", padding: 24, borderRadius: 24, backgroundColor: "#FFFFFF", shadowColor: "#201C2B", shadowOpacity: 0.18, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 8 },
+  modalWarningIcon: { width: 60, height: 60, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: "#FFF0EC" },
+  modalTitle: { marginTop: 16, color: "#201C2B", fontSize: 24, fontWeight: "800" },
+  modalDescription: { marginTop: 10, color: "#6E687A", fontSize: 15, lineHeight: 22, textAlign: "center" },
+  modalUnlockButton: { width: "100%", height: 52, marginTop: 24, alignItems: "center", justifyContent: "center", borderRadius: 15, backgroundColor: "#D85C4A" },
+  modalUnlockButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "800" },
+  modalCancelButton: { width: "100%", height: 48, marginTop: 8, alignItems: "center", justifyContent: "center", borderRadius: 15 },
+  modalCancelButtonText: { color: "#6E687A", fontSize: 15, fontWeight: "700" },
 });
