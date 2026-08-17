@@ -6,182 +6,70 @@ import ManagedSettings
 final class AppBlocker {
     static let shared = AppBlocker()
 
-    private let settingsStore = ManagedSettingsStore()
-    private let operationLock = NSLock()
-    private let journalStore = BlockingOperationJournalStore()
+    private typealias StateMachine = BlockingStateMachine<
+        ManagedSettingsShieldManager,
+        FileBlockingOperationJournalStore<ShieldState>
+    >
 
-    private init() {
+    private let operationLock = NSLock()
+    private let selectionStore: AppSelectionStore
+    private let stateMachine: StateMachine
+
+    init(
+        selectionStore: AppSelectionStore = .shared,
+        settingsStore: ManagedSettingsStore = ManagedSettingsStore(),
+        journalURL: URL = AppBlocker.defaultJournalURL,
+        isAuthorized: @escaping () -> Bool = {
+            AuthorizationCenter.shared.authorizationStatus == .approved
+        }
+    ) {
+        self.selectionStore = selectionStore
+        stateMachine = BlockingStateMachine(
+            shields: ManagedSettingsShieldManager(settingsStore: settingsStore),
+            journalStore: FileBlockingOperationJournalStore(fileURL: journalURL),
+            isAuthorized: isAuthorized
+        )
+
         operationLock.lock()
         defer { operationLock.unlock() }
-        try? recoverInterruptedOperation()
+        try? stateMachine.recoverInterruptedOperation()
     }
 
     func getLocked() throws -> Bool {
         operationLock.lock()
         defer { operationLock.unlock() }
 
-        try recoverInterruptedOperation()
-        return hasAnyShield
+        try stateMachine.recoverInterruptedOperation()
+        return stateMachine.hasAnyShield
     }
 
     func saveSelection(_ selection: FamilyActivitySelection) throws {
         operationLock.lock()
         defer { operationLock.unlock() }
 
-        try recoverInterruptedOperation()
-        guard !hasAnyShield else {
+        try stateMachine.recoverInterruptedOperation()
+        guard !stateMachine.hasAnyShield else {
             throw AppBlockerError.selectionLocked
         }
-        try AppSelectionStore.shared.save(selection)
+        try selectionStore.save(selection)
     }
 
     func setBlockingEnabled(_ enabled: Bool) throws -> BlockingResult {
         operationLock.lock()
         defer { operationLock.unlock() }
 
-        return try setBlockingEnabledLocked(enabled)
+        let state = try stateMachine.setBlockingEnabled(enabled) {
+            ShieldState(selection: selectionStore.load())
+        }
+        return blockingResult(for: state)
     }
 
     func clearSelection() throws {
         operationLock.lock()
         defer { operationLock.unlock() }
 
-        _ = try setBlockingEnabledLocked(false)
-        AppSelectionStore.shared.clear()
-    }
-
-    private func setBlockingEnabledLocked(_ enabled: Bool) throws -> BlockingResult {
-        do {
-            try recoverInterruptedOperation()
-        } catch {
-            guard !enabled else { throw error }
-
-            // Unlock is the last-resort recovery path. If the journal itself is
-            // unreadable, clearing every shield is safer than trapping the user.
-            apply(.empty)
-            guard shieldMatches(.empty) else {
-                throw AppBlockerError.recoveryFailed
-            }
-            try journalStore.clear()
-            return blockingResult(for: .empty)
-        }
-
-        if enabled {
-            guard AuthorizationCenter.shared.authorizationStatus == .approved else {
-                throw AppBlockerError.notAuthorized
-            }
-        }
-
-        let previous = try captureShieldState()
-        let intended: ShieldState
-
-        if enabled {
-            let selection = AppSelectionStore.shared.load()
-            guard
-                !selection.applicationTokens.isEmpty ||
-                !selection.categoryTokens.isEmpty ||
-                !selection.webDomainTokens.isEmpty
-            else {
-                throw AppBlockerError.noSelection
-            }
-            intended = ShieldState(selection: selection)
-        } else {
-            intended = .empty
-        }
-
-        if shieldMatches(intended) {
-            return blockingResult(for: intended)
-        }
-
-        try journalStore.save(
-            BlockingOperationJournal(previous: previous, intended: intended)
-        )
-
-        apply(intended)
-
-        guard shieldMatches(intended) else {
-            try rollback(to: previous, because: .verificationFailedRolledBack)
-        }
-
-        do {
-            try journalStore.clear()
-        } catch {
-            try rollback(to: previous, because: .commitFailedRolledBack)
-        }
-        return blockingResult(for: intended)
-    }
-
-    private var hasAnyShield: Bool {
-        settingsStore.shield.applications != nil ||
-            settingsStore.shield.applicationCategories != nil ||
-            settingsStore.shield.webDomains != nil
-    }
-
-    private func recoverInterruptedOperation() throws {
-        guard let journal = try journalStore.load() else { return }
-
-        apply(journal.previous)
-        guard shieldMatches(journal.previous) else {
-            throw AppBlockerError.recoveryFailed
-        }
-        try journalStore.clear()
-    }
-
-    private func captureShieldState() throws -> ShieldState {
-        let categoryTokens: Set<ActivityCategoryToken>
-        switch settingsStore.shield.applicationCategories {
-        case .some(.specific(let tokens, except: let exceptions)) where exceptions.isEmpty:
-            categoryTokens = tokens
-        case .some(.none), .none:
-            categoryTokens = []
-        default:
-            throw AppBlockerError.unsupportedExistingCategoryPolicy
-        }
-
-        return ShieldState(
-            applicationTokens: settingsStore.shield.applications ?? [],
-            categoryTokens: categoryTokens,
-            webDomainTokens: settingsStore.shield.webDomains ?? []
-        )
-    }
-
-    private func apply(_ state: ShieldState) {
-        settingsStore.shield.applications =
-            state.applicationTokens.isEmpty ? nil : state.applicationTokens
-        settingsStore.shield.applicationCategories =
-            state.categoryTokens.isEmpty ? nil : .specific(state.categoryTokens)
-        settingsStore.shield.webDomains =
-            state.webDomainTokens.isEmpty ? nil : state.webDomainTokens
-    }
-
-    private func rollback(
-        to previous: ShieldState,
-        because failure: AppBlockerError
-    ) throws -> Never {
-        apply(previous)
-        guard shieldMatches(previous) else {
-            throw AppBlockerError.rollbackFailed
-        }
-        do {
-            try journalStore.clear()
-        } catch {
-            throw AppBlockerError.rollbackFailed
-        }
-        throw failure
-    }
-
-    private func shieldMatches(_ state: ShieldState) -> Bool {
-        let applicationsMatch =
-            (settingsStore.shield.applications ?? []) == state.applicationTokens
-        let webDomainsMatch =
-            (settingsStore.shield.webDomains ?? []) == state.webDomainTokens
-
-        let expectedCategories: ShieldSettings.ActivityCategoryPolicy<Application>? =
-            state.categoryTokens.isEmpty ? nil : .specific(state.categoryTokens)
-        let categoriesMatch =
-            settingsStore.shield.applicationCategories == expectedCategories
-
-        return applicationsMatch && categoriesMatch && webDomainsMatch
+        _ = try stateMachine.setBlockingEnabled(false) { .empty }
+        selectionStore.clear()
     }
 
     private func blockingResult(for state: ShieldState) -> BlockingResult {
@@ -190,6 +78,16 @@ final class AppBlocker {
             locked: !state.isEmpty
         )
     }
+
+    static var defaultJournalURL: URL {
+        let applicationSupport = FileManager.default.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        )[0]
+        return applicationSupport
+            .appendingPathComponent("ScanLock", isDirectory: true)
+            .appendingPathComponent("blocking-operation.json")
+    }
 }
 
 struct BlockingResult: Record {
@@ -197,7 +95,7 @@ struct BlockingResult: Record {
     @Field var locked: Bool = false
 }
 
-private struct ShieldState: Codable {
+struct ShieldState: BlockingStateValue {
     let applicationTokens: Set<ApplicationToken>
     let categoryTokens: Set<ActivityCategoryToken>
     let webDomainTokens: Set<WebDomainToken>
@@ -231,48 +129,62 @@ private struct ShieldState: Codable {
     }
 }
 
-private struct BlockingOperationJournal: Codable {
-    let previous: ShieldState
-    let intended: ShieldState
-}
+final class ManagedSettingsShieldManager: BlockingShieldManaging {
+    private let settingsStore: ManagedSettingsStore
 
-private final class BlockingOperationJournalStore {
-    private let fileURL: URL
-
-    init() {
-        let applicationSupport = FileManager.default.urls(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask
-        )[0]
-        let directory = applicationSupport.appendingPathComponent("ScanLock", isDirectory: true)
-        fileURL = directory.appendingPathComponent("blocking-operation.json")
+    init(settingsStore: ManagedSettingsStore) {
+        self.settingsStore = settingsStore
     }
 
-    func save(_ journal: BlockingOperationJournal) throws {
-        let directory = fileURL.deletingLastPathComponent()
-        try FileManager.default.createDirectory(
-            at: directory,
-            withIntermediateDirectories: true
-        )
-        let data = try JSONEncoder().encode(journal)
-        try data.write(to: fileURL, options: .atomic)
+    var hasAnyShield: Bool {
+        settingsStore.shield.applications != nil ||
+            settingsStore.shield.applicationCategories != nil ||
+            settingsStore.shield.webDomains != nil
     }
 
-    func load() throws -> BlockingOperationJournal? {
-        guard FileManager.default.fileExists(atPath: fileURL.path) else { return nil }
-        return try JSONDecoder().decode(
-            BlockingOperationJournal.self,
-            from: Data(contentsOf: fileURL)
+    func capture() throws -> ShieldState {
+        let categoryTokens: Set<ActivityCategoryToken>
+        switch settingsStore.shield.applicationCategories {
+        case .some(.specific(let tokens, except: let exceptions)) where exceptions.isEmpty:
+            categoryTokens = tokens
+        case .some(.none), .none:
+            categoryTokens = []
+        default:
+            throw AppBlockerError.unsupportedExistingCategoryPolicy
+        }
+
+        return ShieldState(
+            applicationTokens: settingsStore.shield.applications ?? [],
+            categoryTokens: categoryTokens,
+            webDomainTokens: settingsStore.shield.webDomains ?? []
         )
     }
 
-    func clear() throws {
-        guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
-        try FileManager.default.removeItem(at: fileURL)
+    func apply(_ state: ShieldState) {
+        settingsStore.shield.applications =
+            state.applicationTokens.isEmpty ? nil : state.applicationTokens
+        settingsStore.shield.applicationCategories =
+            state.categoryTokens.isEmpty ? nil : .specific(state.categoryTokens)
+        settingsStore.shield.webDomains =
+            state.webDomainTokens.isEmpty ? nil : state.webDomainTokens
+    }
+
+    func matches(_ state: ShieldState) -> Bool {
+        let applicationsMatch =
+            (settingsStore.shield.applications ?? []) == state.applicationTokens
+        let webDomainsMatch =
+            (settingsStore.shield.webDomains ?? []) == state.webDomainTokens
+
+        let expectedCategories: ShieldSettings.ActivityCategoryPolicy<Application>? =
+            state.categoryTokens.isEmpty ? nil : .specific(state.categoryTokens)
+        let categoriesMatch =
+            settingsStore.shield.applicationCategories == expectedCategories
+
+        return applicationsMatch && categoriesMatch && webDomainsMatch
     }
 }
 
-enum AppBlockerError: LocalizedError {
+enum AppBlockerError: LocalizedError, Equatable {
     case notAuthorized
     case noSelection
     case selectionLocked

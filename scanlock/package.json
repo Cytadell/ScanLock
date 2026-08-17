@@ -10,8 +10,10 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test": "jest --runInBand",
+    "test:ci": "jest --ci --runInBand",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage --runInBand"
+    "test:coverage": "jest --coverage --runInBand",
+    "test:ios": "node scripts/run-ios-unit-tests.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

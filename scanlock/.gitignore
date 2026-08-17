@@ -39,6 +39,7 @@ yarn-error.*
 
 # tests
 coverage/
+test-results/
 
 app-example
 

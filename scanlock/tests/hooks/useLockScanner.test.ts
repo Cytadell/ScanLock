@@ -13,6 +13,9 @@ const mockRequestPermission = jest.fn();
 const mockImpactAsync = jest.fn();
 const mockNotificationAsync = jest.fn();
 const mockSelectionAsync = jest.fn();
+const mockStorageGetItem = jest.fn();
+const mockStorageSetItem = jest.fn();
+const mockStorageRemoveItem = jest.fn();
 
 let mockCameraPermission: { granted: boolean } | null = { granted: true };
 
@@ -26,6 +29,15 @@ jest.mock("@/services/appBlocker", () => ({
 
 jest.mock("@/services/qrCode", () => ({
   validateQrPayload: (value: string) => mockValidateQrPayload(value),
+}));
+
+jest.mock("@react-native-async-storage/async-storage", () => ({
+  __esModule: true,
+  default: {
+    getItem: (...args: unknown[]) => mockStorageGetItem(...args),
+    setItem: (...args: unknown[]) => mockStorageSetItem(...args),
+    removeItem: (...args: unknown[]) => mockStorageRemoveItem(...args),
+  },
 }));
 
 jest.mock("expo-camera", () => ({
@@ -66,6 +78,9 @@ describe("useLockScanner", () => {
       status: enabled ? "locked" : "unlocked",
       locked: enabled,
     }));
+    mockStorageGetItem.mockResolvedValue(null);
+    mockStorageSetItem.mockResolvedValue(undefined);
+    mockStorageRemoveItem.mockResolvedValue(undefined);
   });
 
   it("loads the persisted lock state when focused", async () => {

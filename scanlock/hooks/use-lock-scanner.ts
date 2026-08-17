@@ -11,6 +11,7 @@ import * as Haptics from "expo-haptics";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import { Alert, Platform } from "react-native";
+import { useLockTimer } from "./use-lock-timer";
 
 export type ScanStatus =
   | "requesting-permission"
@@ -31,13 +32,20 @@ export function useLockScanner() {
   const scanLockRef = useRef(false);
   const completionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [permission, requestPermission] = useCameraPermissions();
+  const lockTimer = useLockTimer();
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
 
       try {
-        if (active) setLockedState(getLocked());
+        const nextLocked = getLocked();
+        if (active) {
+          setLockedState(nextLocked);
+          void lockTimer.syncWithLockState(nextLocked).catch((error) => {
+            console.error("Could not load lock timer:", error);
+          });
+        }
       } catch (error) {
         console.error("Could not load locked state:", error);
       } finally {
@@ -48,7 +56,7 @@ export function useLockScanner() {
         active = false;
         if (completionTimerRef.current) clearTimeout(completionTimerRef.current);
       };
-    }, [])
+    }, [lockTimer.syncWithLockState])
   );
 
   const close = useCallback(() => {
@@ -137,6 +145,10 @@ export function useLockScanner() {
         }
 
         setLockedState(result.locked);
+        const updateTimer = result.locked ? lockTimer.start : lockTimer.stop;
+        void updateTimer().catch((error) => {
+          console.error("Could not update lock timer:", error);
+        });
         setStatus("success");
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
@@ -150,7 +162,7 @@ export function useLockScanner() {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     },
-    [close, locked]
+    [close, lockTimer.start, lockTimer.stop, locked]
   );
 
   const retry = useCallback(() => {
@@ -166,6 +178,7 @@ export function useLockScanner() {
 
   return {
     locked,
+    lockElapsed: lockTimer.formattedElapsed,
     isLoading,
     isOpen,
     status,

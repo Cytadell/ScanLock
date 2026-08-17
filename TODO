@@ -1,5 +1,5 @@
 1. Make a universal scanlock for debug (not that security really matters for this) (CLEAR)
-2. Make an isLocking Enabled native rather than having a seperate async stored locked bool
+2. Make an isLocking Enabled native rather than having a seperate async stored locked bool (CLEARED)
 3. Make it so scanlock cannot lock itself (Effectively cleared. turns out its impossible thanks apple)
 3. Build system for handling poorly timed deletion and leftover shield risk (It looks like its okay I tested it)
 4. Go over enabling and disabling steps and handle for all fail point or partial success/fail cases (should be cleared)
@@ -7,7 +7,7 @@
 6. ADD AUTOMATED TESTS! (CLEAR)
 7. Improve authorization and error reporting (and general logging) (CLEARED)
 8. Create UI for locked apps (optional)
-9. add android integrations
+9. add android integrations (MVP Cleared. Didn't do heavy tests on this)
 10.Make it so the scanner and the app selector (the later I think is already done) can only be opened with screen time Enabled (CLEARED)
 11. Clean up code basis to make a mirroring public github for this
 
@@ -16,8 +16,15 @@ Additional TODOs
 12. Add native Swift tests for locking, unlocking, interrupted-operation recovery, rollback, and journal failures
 13. Handle Screen Time authorization changes while the app is open and provide a clear recovery action if permission is revoked (This is basically fine CLEAR)
 14. Add an Open Settings action when camera permission is denied (ALREADY DONE)
-15. If no apps are selected, the lock-to-scan button should not open the scanner and should instead prompt the user to select apps. This check applies only when locking; unlocking must always remain available
+15. If no apps are selected, the lock-to-scan button should not open the scanner and should instead prompt the user to select apps. This check applies only when locking; unlocking must always remain available (CLEARED)
 16. Complete release readiness: privacy policy, App Store privacy details, camera usage description, icons, splash screen, screenshots, support URL, store copy, TestFlight checklist, production smoke test, and Family Controls entitlement approval
 17. Replace the generated README, fix broken text encoding, document the architecture/build setup/security model, and remove or consolidate duplicated and unused public-repository artifacts
-18. Set up CI to run TypeScript, ESLint, Jest, coverage checks, and an iOS build on pull requests
+18. Set up CI to run TypeScript, ESLint, Jest, coverage checks, and an iOS build on pull requests (CANCELLED)
 19. Complete an accessibility and device-layout pass: VoiceOver, Dynamic Type, contrast, reduced motion, touch targets, small iPhones, landscape where supported, and iPads
+20. Overview all text and messages and edit for clarity and user experience
+21. Create an advanced settings tab to include special locking settings
+22. Edit emergency access so it has a time delayed to unlock or some kind of stronger friction
+23. Add/make app logo and make general UI improvements
+24. Add proper commenting to code
+25. Add locked time counter to scan page.
+26. Add lock time recording and statistics

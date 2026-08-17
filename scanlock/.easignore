@@ -1,3 +1,31 @@
-/tests
-/coverage
-/jest.config.js
+# Dependencies and generated output
+node_modules/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+ios/
+android/
+.kotlin/
+modules/*/android/build/
+
+# Test output (test sources and Jest configuration remain included)
+coverage/
+test-results/
+
+# Local-only and sensitive files
+.env*.local
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+
+# Tooling output
+*.tsbuildinfo
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.DS_Store
+app-example/

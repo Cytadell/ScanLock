@@ -5,10 +5,11 @@ import { Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } fr
 
 type Props = {
   locked: boolean;
+  lockElapsed: string;
   onScan: () => void;
 };
 
-export function LockStatusCard({ locked, onScan }: Props) {
+export function LockStatusCard({ locked, lockElapsed, onScan }: Props) {
   const [helpVisible, setHelpVisible] = useState(false);
   const accent = locked ? "#E46C55" : "#16A079";
   const tint = locked ? "#FFF0EC" : "#E9F8F3";
@@ -87,6 +88,17 @@ export function LockStatusCard({ locked, onScan }: Props) {
               ? "Scan a QR code when you’re ready to get access again."
               : "Ready to focus? Scan a QR code to block your selected apps."}
           </Text>
+          {locked && (
+            <View
+              accessible
+              accessibilityLabel={`Apps have been locked for ${lockElapsed}`}
+              style={styles.timer}
+            >
+              <Text style={styles.timerLabel}>LOCKED FOR</Text>
+              <Text style={styles.timerValue}>{lockElapsed}</Text>
+              <Text style={styles.timerUnits}>HOURS       MINUTES       SECONDS</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.footer}>
@@ -181,6 +193,10 @@ const styles = StyleSheet.create({
   statusText: { fontSize: 12, fontWeight: "800", letterSpacing: 1.2 },
   title: { color: "#201C2B", fontSize: 32, lineHeight: 38, fontWeight: "800", letterSpacing: -1, textAlign: "center", maxWidth: 330 },
   subtitle: { color: "#6E687A", fontSize: 16, lineHeight: 24, textAlign: "center", maxWidth: 330, marginTop: 12 },
+  timer: { alignItems: "center", marginTop: 22, paddingHorizontal: 22, paddingVertical: 14, borderRadius: 18, backgroundColor: "rgba(255, 255, 255, 0.8)", borderWidth: 1, borderColor: "#F2DAD4" },
+  timerLabel: { color: "#E46C55", fontSize: 10, fontWeight: "800", letterSpacing: 1.4 },
+  timerValue: { color: "#201C2B", fontSize: 32, lineHeight: 39, fontWeight: "800", letterSpacing: 2, fontVariant: ["tabular-nums"], marginTop: 2 },
+  timerUnits: { color: "#888397", fontSize: 8, fontWeight: "700", letterSpacing: 0.7 },
   footer: { gap: 16 },
   scanButton: { height: 58, borderRadius: 18, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#7057E8", shadowColor: "#7057E8", shadowOpacity: 0.3, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
   scanButtonPressed: { transform: [{ scale: 0.985 }], opacity: 0.92 },

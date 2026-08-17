@@ -4,18 +4,25 @@ import Foundation
 final class AppSelectionStore {
     static let shared = AppSelectionStore()
 
-    private let selectionKey = "ScanLockFamilyActivitySelection"
+    private let defaults: UserDefaults
+    private let selectionKey: String
 
-    private init() {}
+    init(
+        defaults: UserDefaults = .standard,
+        selectionKey: String = "ScanLockFamilyActivitySelection"
+    ) {
+        self.defaults = defaults
+        self.selectionKey = selectionKey
+    }
 
     func save(_ selection: FamilyActivitySelection) throws {
         let data = try JSONEncoder().encode(selection)
-        UserDefaults.standard.set(data, forKey: selectionKey)
+        defaults.set(data, forKey: selectionKey)
     }
 
     func load() -> FamilyActivitySelection {
         guard
-            let data = UserDefaults.standard.data(forKey: selectionKey),
+            let data = defaults.data(forKey: selectionKey),
             let selection = try? JSONDecoder().decode(
                 FamilyActivitySelection.self,
                 from: data
@@ -39,6 +46,6 @@ final class AppSelectionStore {
     }
 
     func clear() {
-        UserDefaults.standard.removeObject(forKey: selectionKey)
+        defaults.removeObject(forKey: selectionKey)
     }
 }

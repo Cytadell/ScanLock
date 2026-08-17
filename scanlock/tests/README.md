@@ -54,6 +54,8 @@ Name files `*.test.ts` or `*.test.tsx`. Keep test data and mocks close to the su
 
 Jest verifies the TypeScript contract with the native AppBlocker module, but it cannot prove that Apple's Family Controls shield is active. Native persistence and shielding should also be tested with XCTest, and the final lock/unlock flow should be exercised on a physical iPhone. Android currently reports AppBlocker as unavailable, so its device test should verify that error path.
 
+The iOS XCTest sources are stored in `native-tests/ios/`. During Expo Prebuild, `plugins/with-ios-unit-tests.js` copies them into the generated iOS project and creates the `ScanLockTests` target. On macOS, run `npx expo prebuild --clean --platform ios --no-install`, `cd ios && pod install && cd ..`, and then `npm run test:ios`. The EAS workflow in `.eas/workflows/test-and-build.yml` runs these tests after Jest and before the preview build.
+
 When adding a native method:
 
 1. Update the TypeScript contract in `services/appBlocker.ts`.

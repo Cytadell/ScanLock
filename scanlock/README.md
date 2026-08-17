@@ -36,6 +36,9 @@ modules/app-blocker/
   ios/                       Swift Family Controls implementation
   android/                   Kotlin Android implementation
 tests/                       Jest component, hook, and service tests
+native-tests/ios/            XCTest state-machine and persistence tests
+plugins/                     Expo Prebuild configuration, including XCTest target generation
+.eas/workflows/              Cloud test and build gates
 ```
 
 `services/appBlocker.ts` is the application-facing boundary. It selects the real native module in development and production builds, and the in-memory `services/appBlocker.expoGo.ts` implementation in Expo Go. Jest mocks this boundary when testing UI workflows.
@@ -84,7 +87,15 @@ npm test
 npm run test:coverage
 ```
 
-Automated tests verify the TypeScript state machines, persistence, QR validation, and the native-module contract through mocks. They do not prove that Apple shields were applied. Use the repository's `NATIVE_IOS_MANUAL_TESTS.txt` checklist for physical-device validation.
+Automated tests verify the TypeScript state machines, persistence, QR validation, and the native-module contract through mocks. On macOS, generate the native project and run the Swift tests with:
+
+```sh
+npx expo prebuild --clean --platform ios --no-install
+cd ios && pod install && cd ..
+npm run test:ios
+```
+
+The committed XCTest sources live outside the generated `ios/` directory. The local Expo config plugin recreates the `ScanLockTests` target and shared scheme during Prebuild. Native unit tests verify the lock transaction, rollback, interrupted-operation recovery, and persistence, but they do not prove that Apple shields were visibly applied. Use the repository's `NATIVE_IOS_MANUAL_TESTS.txt` checklist for physical-device validation.
 
 ## Builds
 
@@ -101,6 +112,14 @@ npx eas-cli build --platform ios --profile development
 npx eas-cli build --platform ios --profile preview
 npx eas-cli build --platform ios --profile production
 ```
+
+The gated iOS workflow runs Jest, then XCTest on an EAS macOS simulator, and creates a preview build only if both pass:
+
+```sh
+npx eas-cli@latest workflow:run .eas/workflows/test-and-build.yml
+```
+
+The workflow is manual-only, so pushes do not consume EAS resources. Run it explicitly when you want a gated preview build. Invoking `eas build` directly does not run the separate workflow test jobs.
 
 JavaScript-only changes can be exercised against a compatible installed development client without rebuilding native code. Changes to Swift, Kotlin, native dependencies, entitlements, or native configuration require a new compatible build.
 

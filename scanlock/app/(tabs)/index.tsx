@@ -36,7 +36,13 @@ export default function HomeScreen() {
     );
   }
 
-  return <LockStatusCard locked={scanner.locked} onScan={scanner.open} />;
+  return (
+    <LockStatusCard
+      locked={scanner.locked}
+      lockElapsed={scanner.lockElapsed}
+      onScan={scanner.open}
+    />
+  );
 }
 
 const styles = StyleSheet.create({
