@@ -83,7 +83,7 @@ export default function SettingsScreen() {
             </View>
             <Text style={styles.modalTitle}>Are you sure?</Text>
             <Text style={styles.modalDescription}>
-              Only use Emergency Unlock if this is an emergency. This will disable app blocking without your QR code.
+              Only use Emergency Unlock if you need to. This will disable app blocking without your QR code.
             </Text>
 
             <Pressable
