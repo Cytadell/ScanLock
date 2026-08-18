@@ -96,10 +96,10 @@ export function useSettings() {
       const result = await setBlockingEnabled(false);
       setLocked(result.locked);
       setEmergencyUnlockVisible(false);
-      Alert.alert("Unlocked", "QR Brick has been disabled.");
+      Alert.alert("Unlocked", "App blocking has been disabled.");
     } catch (error) {
       console.error("Could not emergency unlock:", error);
-      Alert.alert("Error", "Could not disable QR Brick.");
+      Alert.alert("Error", "Could not disable app blocking.");
     } finally {
       setEmergencyUnlockChanging(false);
     }
