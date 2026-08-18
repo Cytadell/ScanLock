@@ -5,7 +5,7 @@
 <h1 align="center">ScanLock</h1>
 
 <p align="center">
-  Take focus offline by using a physical QR key to lock and unlock distracting apps.
+  Are you losing time to doomscrolling? Unlock your time with ScanLock.
 </p>
 
 > [!NOTE]
@@ -13,11 +13,9 @@
 
 ## About ScanLock
 
-Are you losing time to doomscrolling? Unlock your time with ScanLock.
-
 ScanLock is an Expo and React Native app that creates a printable QR key for locking and unlocking selected apps. Print or share the key, place it away from your phone, and create a physical barrier between yourself and the apps that waste your time. Regaining access requires intentionally walking to the QR key and scanning it.
 
-The goal is not to make distracting apps permanently inaccessible. It is to add enough real-world friction to interrupt an automatic habit while keeping an emergency recovery option available.
+The goal is not to make distracting apps permanently inaccessible. It is to add enough real-world friction to interrupt subconscious scrolling habits.
 
 ## How it works
 
