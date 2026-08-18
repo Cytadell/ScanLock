@@ -1,0 +1,32 @@
+# ScanLock dependencies and generated output
+scanlock/node_modules/
+scanlock/.expo/
+scanlock/dist/
+scanlock/web-build/
+scanlock/expo-env.d.ts
+scanlock/ios/
+scanlock/android/
+scanlock/.kotlin/
+scanlock/modules/*/android/build/
+
+# Test output (test sources and Jest configuration remain included)
+scanlock/coverage/
+scanlock/test-results/
+
+# Local-only and sensitive files
+scanlock/.env*.local
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+
+# Tooling output
+scanlock/*.tsbuildinfo
+scanlock/npm-debug.*
+scanlock/yarn-debug.*
+scanlock/yarn-error.*
+.DS_Store
+scanlock/app-example/
+.eas-inspect-archive/
