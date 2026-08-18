@@ -30,13 +30,16 @@ Additional TODOs
 24. Add proper commenting to code
 25. Add locked time counter to scan page. (CLEARED)
 26. Add lock time recording and statistics (Optional)
-27. Add a message in the scanner saying if the user hasn't printed their QR code they need to do that.
 Compliance TODOS:
 1. Complete release readiness: privacy policy, App Store privacy details, camera usage description, icons, splash screen, screenshots, support URL, store copy, TestFlight checklist, production smoke test, and Family Controls entitlement approval
 2. Complete an accessibility and device-layout pass: VoiceOver, Dynamic Type, contrast, reduced motion, touch targets, small iPhones, landscape where supported, and iPads
 
 
 8/18 plan:
-- Make it github public ready then make it public
-- Make basic compliance good
+- Make it github public ready then make it public CLEARED
+- Make basic compliance good CLEARED
 - Prepare to test flight for ios
+    - To Prepare do the following:
+        - Add a message in the scanner saying if the user hasn't printed their QR code they need to do that (If curr unlocked)
+        - Actually go over all the messaging and edit it
+        - Make a note in scan to unlock that asks users if they lost the qr code they can use emergency unlock in settings tab (If curr locked)
