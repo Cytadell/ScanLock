@@ -1,93 +1,182 @@
-# ScanLock
+<p align="center">
+  <img src="assets/images/icon.png" alt="ScanLock app icon" width="112" />
+</p>
 
-ScanLock is an Expo and React Native app that uses a QR code as a physical key for selected apps, categories, and websites. On iOS, it integrates with Apple's Family Controls and Managed Settings frameworks to apply and remove Screen Time shields.
+<h1 align="center">ScanLock</h1>
 
-The project is under active development and is not release-ready. In particular, the Family Controls entitlement and all recovery paths must be validated on physical Apple devices before distribution.
+<p align="center">
+  Take focus offline by using a physical QR key to lock and unlock distracting apps.
+</p>
+
+> [!NOTE]
+> ScanLock is experimental and under active development. The iOS implementation has received the most extensive automated and physical-device testing. Android is implemented and has been tested in an emulator, but still needs broader physical-device validation.
+
+## About ScanLock
+
+Are you losing time to doomscrolling? Unlock your time with ScanLock.
+
+ScanLock is an Expo and React Native app that creates a printable QR key for locking and unlocking selected apps. Print or share the key, place it away from your phone, and create a physical barrier between yourself and the apps that waste your time. Regaining access requires intentionally walking to the QR key and scanning it.
+
+The goal is not to make distracting apps permanently inaccessible. It is to add enough real-world friction to interrupt an automatic habit while keeping an emergency recovery option available.
 
 ## How it works
 
-1. The user grants Screen Time authorization and chooses apps, categories, or websites with Apple's private activity picker.
-2. ScanLock creates a random identifier and encodes it in a versioned QR payload.
-3. Scanning the matching QR requests a lock or unlock transition.
-4. The native module journals the requested shield change, applies it, verifies the resulting state, and rolls back or recovers after an interrupted operation when necessary.
+1. Grant the platform's required authorization and choose the apps you want ScanLock to protect.
+2. ScanLock generates a random local identifier and encodes it in a printable QR key.
+3. Print or share the key and place it somewhere away from your phone.
+4. Scan the matching QR key to lock the selected apps.
+5. Scan the same key again when you intentionally want to unlock them.
 
-ScanLock never receives the names of items chosen in Apple's picker. It stores Apple's opaque selection tokens locally and passes them back to the system when applying shields.
+Invalid, malformed, replaced, or unrelated QR codes do not change the lock state. The QR key can be rotated while the app is unlocked, and an explicit emergency-unlock flow is available if the physical key cannot be reached.
 
-## Technology
+## Screenshots
 
-- Expo SDK 54, React Native 0.81, and React 19
-- Expo Router for navigation
-- TypeScript for application and native-bridge contracts
-- Swift with Family Controls and Managed Settings on iOS
-- Kotlin native module using an Accessibility Service and native blocking screen on Android
-- Jest and React Native Testing Library for automated application tests
+<table>
+  <tr>
+    <td align="center"><strong>Lock status</strong></td>
+    <td align="center"><strong>Printable QR key</strong></td>
+    <td align="center"><strong>App selection and recovery</strong></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/home-page.png" alt="ScanLock home page showing apps locked and the lock timer" width="280" /></td>
+    <td><img src="docs/screenshots/get-lock-page.png" alt="ScanLock Get Lock page showing a printable QR key" width="280" /></td>
+    <td><img src="docs/screenshots/settings-page.png" alt="ScanLock settings page showing blocked-app selection and emergency access" width="280" /></td>
+  </tr>
+</table>
 
-The minimum configured iOS deployment target is 16.0. Tablet support is enabled.
+## Features
 
-## Repository layout
+- Select which apps ScanLock protects.
+- Generate, print, share, and replace a device-specific QR key.
+- Lock and unlock only after a matching QR scan.
+- Track how long the current locked session has lasted.
+- Preserve app selection and lock state across relaunches.
+- Prevent selection and QR-key changes while locked.
+- Recover through a deliberately labeled emergency-unlock flow.
+- Use a simulated blocker in Expo Go for JavaScript and UI development.
 
-```text
-app/                         Expo Router screens and layouts
-components/                  Reusable UI and onboarding/scanner views
-hooks/                       Screen state machines and UI workflows
-services/                    QR, persistence, and native-module boundary
-modules/app-blocker/
-  src/                       TypeScript native-module contract
-  ios/                       Swift Family Controls implementation
-  android/                   Kotlin Android implementation
-tests/                       Jest component, hook, and service tests
-native-tests/ios/            XCTest state-machine and persistence tests
-plugins/                     Expo Prebuild configuration, including XCTest target generation
-.eas/workflows/              Cloud test and build gates
-```
+## Platform support
 
-`services/appBlocker.ts` is the application-facing boundary. It selects the real native module in development and production builds, and the in-memory `services/appBlocker.expoGo.ts` implementation in Expo Go. Jest mocks this boundary when testing UI workflows.
+| Platform | Blocking mechanism | Current validation |
+| --- | --- | --- |
+| iOS | Family Controls app picker and Managed Settings shields | Jest, XCTest, and physical-device testing |
+| Android | Accessibility Service, native app picker, and blocking activity | Kotlin unit tests and emulator testing; physical-device testing remains |
+| Expo Go | In-memory simulated blocker | Intended for UI and JavaScript development only |
+| Web | UI development only | Native app blocking is unavailable |
 
-## Requirements
+Real app blocking cannot be tested in Expo Go. Use a native development, preview, or production build to validate authorization, app selection, blocking, persistence, and recovery.
+
+## Getting started
+
+### Requirements
 
 - Node.js 22.13 or newer
 - npm
-- An Expo account for EAS builds
-- For native iOS work: an Apple Developer account, Family Controls entitlement access, and a physical iPhone or iPad
+- An Expo account for EAS cloud builds
+- Android Studio and the Android SDK for local Android native builds
+- macOS and Xcode for local iOS native builds
+- An Apple Developer account, Family Controls entitlement access, and a physical iPhone or iPad for complete iOS validation
 
-Install dependencies from this directory:
+### Install
+
+Clone the repository and install the JavaScript dependencies from the application directory:
 
 ```sh
+git clone https://github.com/Cytadell/ScanLock.git
+cd ScanLock/scanlock
 npm install
 ```
 
-## Development
-
-Start Metro:
+### Start the development server
 
 ```sh
 npm start
 ```
 
-Expo Go can exercise most JavaScript UI and the simulated app-blocker service, but it cannot validate real Family Controls shields. Use an iOS development build for the native picker, Screen Time authorization, shield state, and interruption recovery.
+This starts Expo's development server. Expo Go can be used to inspect most of the interface with the simulated app-blocker service, but it cannot load ScanLock's custom Swift or Kotlin modules.
 
-Common commands:
+### Run a native development build
+
+Android:
 
 ```sh
-npm run web
 npm run android
+```
+
+This generates the native Android project when necessary, compiles it with Gradle, installs it on a connected device or emulator, and starts Metro.
+
+iOS, on macOS only:
+
+```sh
 npm run ios
 ```
 
-On Windows PowerShell systems that block `.ps1` command shims, use `npm.cmd` and `npx.cmd` instead.
+This generates the native iOS project when necessary, compiles it with Xcode, installs it on a simulator or device, and starts Metro. Family Controls behavior must ultimately be tested on a physical Apple device.
 
-## Verification
+The browser target is useful for UI work but does not provide native app blocking:
 
-Run all local checks before opening a pull request:
+```sh
+npm run web
+```
+
+On Windows systems that block PowerShell command shims, use `npm.cmd` and `npx.cmd` in place of `npm` and `npx`.
+
+## Architecture
+
+ScanLock keeps the React Native interface independent from the platform-specific blocking implementation by placing a typed service in front of a local Expo native module.
+
+```mermaid
+flowchart TD
+    UI["Expo Router and React Native UI"] --> Logic["Hooks and application services"]
+    Logic --> QR["QR generation, validation, and local persistence"]
+    Logic --> Bridge["Typed AppBlocker service"]
+    Bridge --> ExpoGo["Expo Go simulator"]
+    Bridge --> Native["Local Expo native module"]
+    Native --> IOS["Swift: Family Controls and Managed Settings"]
+    Native --> Android["Kotlin: Accessibility Service and blocking activity"]
+```
+
+### iOS consistency and recovery
+
+The iOS implementation treats a lock-state change as a transaction rather than assuming the platform operation succeeded. Its state machine records an operation journal, applies or removes shields, verifies the resulting state, rolls back failed changes, and recovers interrupted operations after relaunch. This prevents the React Native interface from reporting a successful lock or unlock before the native state is confirmed.
+
+### Continuous Native Generation
+
+The generated `ios/` and `android/` directories are not committed. Expo Prebuild recreates them from `app.json`, installed packages, the local `modules/app-blocker` module, and config plugins. The `with-ios-unit-tests` plugin also recreates the XCTest target and shared scheme during Prebuild.
+
+## Technology
+
+- Expo SDK 54, React Native 0.81, and React 19
+- Expo Router and TypeScript
+- Swift, Family Controls, Managed Settings, and XCTest on iOS
+- Kotlin, Android Accessibility APIs, native activities, and JUnit on Android
+- AsyncStorage and Expo Crypto for QR-key persistence and generation
+- Jest and React Native Testing Library for application tests
+- EAS Build and EAS Workflows for cloud testing and native builds
+
+The minimum configured iOS deployment target is 16.0, and tablet support is enabled.
+
+## Testing and verification
+
+Run the local JavaScript and TypeScript checks before opening a pull request:
 
 ```sh
 npx tsc --noEmit
 npm run lint
 npm test
+```
+
+The current Jest suite contains 50 tests across application services, hooks, persistence, QR validation, native-service interactions, and user-visible lock-state behavior. Generate a local coverage report with:
+
+```sh
 npm run test:coverage
 ```
 
-Automated tests verify the TypeScript state machines, persistence, QR validation, and the native-module contract through mocks. On macOS, generate the native project and run the Swift tests with:
+The HTML report is written to `coverage/lcov-report/index.html`. Coverage output is intentionally ignored by Git.
+
+### iOS native tests
+
+On macOS, generate the native project and run the Swift unit tests with:
 
 ```sh
 npx expo prebuild --clean --platform ios --no-install
@@ -95,51 +184,78 @@ cd ios && pod install && cd ..
 npm run test:ios
 ```
 
-The committed XCTest sources live outside the generated `ios/` directory. The local Expo config plugin recreates the `ScanLockTests` target and shared scheme during Prebuild. Native unit tests verify the lock transaction, rollback, interrupted-operation recovery, and persistence, but they do not prove that Apple shields were visibly applied. Use the repository's `NATIVE_IOS_MANUAL_TESTS.txt` checklist for physical-device validation.
+The committed XCTest sources live in `native-tests/ios/`, outside the generated project. They verify selection persistence, the blocking journal, transaction rollback, failure handling, and interrupted-operation recovery. They do not prove that shields are visibly active, so final validation still requires the [native iOS manual-test checklist](../NATIVE_IOS_MANUAL_TESTS.txt) on physical devices.
 
-## Builds
+Android native behavior has a JUnit decision test and a separate [Android manual-test checklist](../NATIVE_ANDROID_MANUAL_TESTS.txt) covering authorization, selection, enforcement, persistence, reboot behavior, and recovery.
 
-EAS profiles are defined in `eas.json`:
+## EAS builds
+
+Build profiles are defined in `eas.json`:
 
 - `development`: internal development-client build
 - `preview`: internal build with the universal debug QR enabled
 - `production`: store-oriented build with the universal debug QR disabled
 
-Typical commands are:
+iOS builds:
 
 ```sh
-npx eas-cli build --platform ios --profile development
-npx eas-cli build --platform ios --profile preview
-npx eas-cli build --platform ios --profile production
+npx eas-cli@latest build --platform ios --profile development
+npx eas-cli@latest build --platform ios --profile preview
+npx eas-cli@latest build --platform ios --profile production
 ```
 
-The gated iOS workflow runs Jest, then XCTest on an EAS macOS simulator, and creates a preview build only if both pass:
+Android builds:
+
+```sh
+npx eas-cli@latest build --platform android --profile development
+npx eas-cli@latest build --platform android --profile preview
+npx eas-cli@latest build --platform android --profile production
+```
+
+The manually triggered gated iOS workflow runs Jest on Linux, runs XCTest on an EAS macOS simulator, and creates a preview build only after both test jobs pass:
 
 ```sh
 npx eas-cli@latest workflow:run .eas/workflows/test-and-build.yml
 ```
 
-The workflow is manual-only, so pushes do not consume EAS resources. Run it explicitly when you want a gated preview build. Invoking `eas build` directly does not run the separate workflow test jobs.
+Pushes to `main` do not automatically consume an EAS build. The workflow runs only when explicitly requested.
 
-JavaScript-only changes can be exercised against a compatible installed development client without rebuilding native code. Changes to Swift, Kotlin, native dependencies, entitlements, or native configuration require a new compatible build.
+## Project structure
 
-## Security model
+```text
+scanlock/
+├── app/                       Expo Router screens and layouts
+├── components/                Reusable interface components
+├── hooks/                     Scanner, timer, settings, and sharing behavior
+├── services/                  QR, persistence, and native-module boundary
+├── modules/app-blocker/       Swift and Kotlin Expo native module
+├── native-tests/ios/          Committed XCTest sources
+├── tests/                     Jest and React Native Testing Library suites
+├── plugins/                   Expo config plugins
+├── scripts/                   Test and development scripts
+├── .eas/workflows/            Manually triggered test/build workflow
+├── app.json                   Expo application and native configuration
+└── eas.json                   EAS build profiles
+```
 
-- QR payloads contain a type, schema version, and random key identifier; they do not contain Screen Time tokens or selected-app names.
-- The QR identifier is stored locally with AsyncStorage. It is a capability used to authorize transitions, not an encryption key or account credential.
-- The universal debug QR is enabled in development and preview configurations. Production builds must keep it disabled and must verify that it is rejected.
-- Selection tokens remain local. Avoid logging QR payloads, tokens, or private selection data.
-- Unlocking remains available even when selection data or Screen Time authorization is missing. The native layer treats clearing shields as the recovery-first operation.
-- Native lock changes are journaled and verified to reduce the chance that an interrupted or partially failed transition leaves stale shields.
+## Current limitations and release status
 
-This design cannot replace Apple platform protections. Anyone who possesses the active QR code can request the corresponding lock or unlock transition.
+- Android still requires validation on multiple physical devices and manufacturers.
+- iOS Family Controls must be tested using a native build on physical hardware.
+- App Store distribution requires approval for the Family Controls distribution entitlement.
+- Production privacy metadata, support/privacy URLs, and final release smoke testing remain outstanding.
+- The universal QR key is for development and preview testing only and is disabled in production builds.
 
-## Release status
-
-Before release, complete the open items in the repository-level `TODO` file, the native manual-test checklist, App Store privacy metadata, support and privacy URLs, production assets, and Family Controls distribution-entitlement approval.
+See the repository-level `TODO` file and native manual-test checklists for the remaining release work.
 
 ## Contributing
 
-Keep native-module changes synchronized across the TypeScript contract, platform implementation, and tests. Do not commit generated `ios/`, `android/`, `.expo/`, `coverage/`, credentials, provisioning profiles, or local environment files.
+Keep changes to the native module synchronized across the TypeScript contract, Swift and Kotlin implementations, and their tests. Do not commit generated `ios/`, `android/`, `.expo/`, `coverage/`, native build output, credentials, provisioning profiles, or local environment files.
 
-This repository does not currently declare an open-source license. All rights remain with the copyright holder unless a license is added.
+When adding or changing native behavior:
+
+1. Update the public TypeScript contract.
+2. Update the applicable Swift or Kotlin implementation.
+3. Add application-level tests for the bridge behavior.
+4. Add native tests for behavior below the JavaScript boundary.
+5. Exercise the appropriate physical-device checklist before release.
