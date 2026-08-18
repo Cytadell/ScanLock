@@ -76,7 +76,7 @@ Clone the repository and install the JavaScript dependencies from the applicatio
 
 ```sh
 git clone https://github.com/Cytadell/ScanLock.git
-cd ScanLock/scanlock
+cd ScanLock
 npm install
 ```
 
@@ -159,7 +159,7 @@ npm run lint
 npm test
 ```
 
-The current Jest suite contains 50 tests across application services, hooks, persistence, QR validation, native-service interactions, and user-visible lock-state behavior. Generate a local coverage report with:
+The current Jest suite contains 55 tests across application services, hooks, persistence, QR validation, native-service interactions, and user-visible lock-state behavior. Generate a local coverage report with:
 
 ```sh
 npm run test:coverage
@@ -177,9 +177,9 @@ cd ios && pod install && cd ..
 npm run test:ios
 ```
 
-The committed XCTest sources live in `native-tests/ios/`, outside the generated project. They verify selection persistence, the blocking journal, transaction rollback, failure handling, and interrupted-operation recovery. They do not prove that shields are visibly active, so final validation still requires the [native iOS manual-test checklist](../NATIVE_IOS_MANUAL_TESTS.txt) on physical devices.
+The committed XCTest sources live in `native-tests/ios/`, outside the generated project. They verify selection persistence, the blocking journal, transaction rollback, failure handling, and interrupted-operation recovery. They do not prove that shields are visibly active, so final validation still requires the [native iOS manual-test checklist](NATIVE_IOS_MANUAL_TESTS.txt) on physical devices.
 
-Android native behavior has a JUnit decision test and a separate [Android manual-test checklist](../NATIVE_ANDROID_MANUAL_TESTS.txt) covering authorization, selection, enforcement, persistence, reboot behavior, and recovery.
+Android native behavior has a JUnit decision test and a separate [Android manual-test checklist](NATIVE_ANDROID_MANUAL_TESTS.txt) covering authorization, selection, enforcement, persistence, reboot behavior, and recovery.
 
 ## EAS builds
 
