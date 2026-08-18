@@ -4,8 +4,10 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
-ios/
-android/
+# Only ignore generated native projects at the repository root. Local Expo
+# modules keep their source in modules/*/ios and modules/*/android.
+/ios/
+/android/
 .kotlin/
 modules/*/android/build/
 
