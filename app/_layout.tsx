@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
 import { FirstRunWalkthrough } from '@/components/onboarding/FirstRunWalkthrough';
@@ -47,19 +48,21 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <OnboardingReplayContext.Provider value={replayOnboarding}>
-        {onboardingComplete ? (
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-          </Stack>
-        ) : (
-          <FirstRunWalkthrough onComplete={finishOnboarding} />
-        )}
-      </OnboardingReplayContext.Provider>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <OnboardingReplayContext.Provider value={replayOnboarding}>
+          {onboardingComplete ? (
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+            </Stack>
+          ) : (
+            <FirstRunWalkthrough onComplete={finishOnboarding} />
+          )}
+        </OnboardingReplayContext.Provider>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 

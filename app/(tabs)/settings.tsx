@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
   securityNote: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, marginTop: 24 },
   securityNoteText: { flexShrink: 1, color: "#625D6F", fontSize: 12, textAlign: "center" },
   modalBackdrop: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, backgroundColor: "rgba(32, 28, 43, 0.58)" },
-  emergencyModal: { width: "100%", maxWidth: 390, maxHeight: "90%", borderRadius: 24, backgroundColor: "#FFFFFF", shadowColor: "#201C2B", shadowOpacity: 0.18, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 8 },
+  emergencyModal: { flexGrow: 0, flexShrink: 1, alignSelf: "center", width: "100%", maxWidth: 390, maxHeight: "90%", borderRadius: 24, backgroundColor: "#FFFFFF", shadowColor: "#201C2B", shadowOpacity: 0.18, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 8 },
   emergencyModalContent: { alignItems: "center", padding: 24 },
   modalWarningIcon: { width: 60, height: 60, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: "#FFF0EC" },
   modalTitle: { marginTop: 16, color: "#201C2B", fontSize: 24, fontWeight: "800" },

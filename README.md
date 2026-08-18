@@ -230,3 +230,9 @@ Pushes to `main` do not automatically consume an EAS build. The workflow runs on
 
 
 See the repository-level `TODO` file and native manual-test checklists for the remaining release work.
+
+## License
+
+ScanLock is available under the [Mozilla Public License 2.0](LICENSE).
+Modifications to covered source files must remain available under the MPL 2.0
+when distributed.

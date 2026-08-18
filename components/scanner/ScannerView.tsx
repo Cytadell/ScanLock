@@ -8,13 +8,14 @@ import {
   Animated,
   Easing,
   Linking,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   useWindowDimensions,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useReduceMotion } from "@/hooks/use-reduce-motion";
 
@@ -42,9 +43,11 @@ export function ScannerView({
   const scanLine = useRef(new Animated.Value(0)).current;
   const frameScale = useRef(new Animated.Value(1)).current;
   const reduceMotion = useReduceMotion();
+  const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const canUseCamera = !["requesting-permission", "permission-denied"].includes(status);
   const frameSize = Math.max(210, Math.min(286, width - 64, height * 0.36));
+  const scannerHeaderInset = Platform.OS === "ios" ? Math.max(insets.top, 44) : insets.top;
 
   useEffect(() => {
     if (status !== "scanning" || reduceMotion) {
@@ -99,8 +102,8 @@ export function ScannerView({
       )}
       <View style={styles.scrim} />
 
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.topBar}>
+      <SafeAreaView edges={["left", "right", "bottom"]} style={styles.safeArea}>
+        <View style={[styles.topBar, { paddingTop: scannerHeaderInset + 12 }]}>
           <Pressable accessibilityRole="button" accessibilityLabel="Close scanner" onPress={onClose} style={styles.circleButton}>
             <MaterialIcons name="close" size={25} color="#FFFFFF" />
           </Pressable>
@@ -250,7 +253,7 @@ const styles = StyleSheet.create({
   permissionBackground: { ...StyleSheet.absoluteFillObject, backgroundColor: "#18151F" },
   scrim: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(8, 6, 12, 0.48)" },
   safeArea: { flex: 1 },
-  topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 12 },
+  topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20 },
   circleButton: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(18, 15, 23, 0.72)", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
   circleButtonActive: { backgroundColor: "#7057E8", borderColor: "#8D79EF" },
   titleBlock: { alignItems: "center" },

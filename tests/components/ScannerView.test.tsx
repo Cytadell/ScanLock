@@ -8,6 +8,13 @@ jest.mock("react-native/Libraries/Utilities/warnOnce", () => ({
   __esModule: true,
   default: () => undefined,
 }));
+jest.mock("react-native-safe-area-context", () => {
+  const actual = jest.requireActual("react-native-safe-area-context");
+  return {
+    ...actual,
+    useSafeAreaInsets: () => ({ top: 59, right: 0, bottom: 34, left: 0 }),
+  };
+});
 jest.mock("expo-camera", () => {
   const { View } = require("react-native");
   return { CameraView: (props: object) => <View {...props} testID="camera-view" /> };
