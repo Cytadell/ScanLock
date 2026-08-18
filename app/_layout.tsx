@@ -40,7 +40,7 @@ export default function RootLayout() {
   if (onboardingComplete === null) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#7057E8" />
+        <ActivityIndicator accessibilityLabel="Loading ScanLock" size="large" color="#7057E8" />
         <StatusBar style="auto" />
       </View>
     );

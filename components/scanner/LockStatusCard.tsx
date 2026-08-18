@@ -1,9 +1,11 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Haptics from "expo-haptics";
-import { useState } from "react";
-import { Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { AccessibilityInfo, findNodeHandle, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { PadlockQrCodeIcon } from "@/components/icons/PadlockQrCodeIcon";
+import { useReduceMotion } from "@/hooks/use-reduce-motion";
 
 type Props = {
   locked: boolean;
@@ -13,7 +15,11 @@ type Props = {
 
 export function LockStatusCard({ locked, lockElapsed, onScan }: Props) {
   const [helpVisible, setHelpVisible] = useState(false);
-  const accent = locked ? "#E46C55" : "#16A079";
+  const helpButtonRef = useRef<View>(null);
+  const helpTitleRef = useRef<Text>(null);
+  const wasHelpVisibleRef = useRef(false);
+  const reduceMotion = useReduceMotion();
+  const accent = locked ? "#B83F31" : "#08785A";
   const tint = locked ? "#FFF0EC" : "#E9F8F3";
 
   // Copy and paste an item here to add another help bubble.
@@ -40,17 +46,30 @@ export function LockStatusCard({ locked, lockElapsed, onScan }: Props) {
     onScan();
   }
 
+  useEffect(() => {
+    const wasVisible = wasHelpVisibleRef.current;
+    wasHelpVisibleRef.current = helpVisible;
+    if (!helpVisible && !wasVisible) return;
+    const timeout = setTimeout(() => {
+      const target = helpVisible ? helpTitleRef.current : helpButtonRef.current;
+      const node = findNodeHandle(target);
+      if (node) AccessibilityInfo.setAccessibilityFocus(node);
+    }, reduceMotion ? 0 : 350);
+    return () => clearTimeout(timeout);
+  }, [helpVisible, reduceMotion]);
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
+      <ScrollView style={styles.screenScroll} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.headerRow}>
           <View style={styles.brandRow}>
-            <View style={styles.brandMark}>
+            <View accessible={false} style={styles.brandMark}>
               <PadlockQrCodeIcon color="#FFFFFF" height={27} />
             </View>
             <Text style={styles.brand}>ScanLock</Text>
           </View>
           <Pressable
+            ref={helpButtonRef}
             accessibilityRole="button"
             accessibilityLabel="Open help"
             accessibilityHint="Shows instructions for using ScanLock"
@@ -62,10 +81,10 @@ export function LockStatusCard({ locked, lockElapsed, onScan }: Props) {
           </Pressable>
         </View>
 
-        <View style={[styles.glow, { backgroundColor: tint }]} />
+        <View accessible={false} style={[styles.glow, { backgroundColor: tint }]} />
 
         <View style={styles.content}>
-          <View style={[styles.lockCircle, { backgroundColor: tint }]}>
+          <View accessible={false} style={[styles.lockCircle, { backgroundColor: tint }]}>
             <View style={[styles.lockCircleInner, { backgroundColor: accent }]}>
               <MaterialIcons
                 name={locked ? "lock" : "lock-open"}
@@ -82,7 +101,7 @@ export function LockStatusCard({ locked, lockElapsed, onScan }: Props) {
             </Text>
           </View>
 
-          <Text style={styles.title}>
+          <Text accessibilityRole="header" style={styles.title}>
             Your apps are {locked ? "locked" : "available"}
           </Text>
           <Text style={styles.subtitle}>
@@ -114,32 +133,31 @@ export function LockStatusCard({ locked, lockElapsed, onScan }: Props) {
             <Text style={styles.scanButtonText}>Scan to {locked ? "unlock" : "lock"}</Text>
             <MaterialIcons name="arrow-forward" size={21} color="#FFFFFF" />
           </Pressable>
-          <View style={styles.secureRow}>
+          <View accessible accessibilityLabel="Changes only happen after a successful scan" style={styles.secureRow}>
             <MaterialIcons name="verified-user" size={15} color="#888397" />
             <Text style={styles.secureText}>Changes only happen after a successful scan</Text>
           </View>
         </View>
-      </View>
+      </ScrollView>
 
       <Modal
-        animationType="slide"
+        animationType={reduceMotion ? "none" : "slide"}
         transparent
         visible={helpVisible}
         onRequestClose={() => setHelpVisible(false)}
       >
         <View style={styles.modalRoot}>
           <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Close help"
+            accessible={false}
             style={styles.backdrop}
             onPress={() => setHelpVisible(false)}
           />
-          <SafeAreaView style={styles.helpSheet}>
+          <SafeAreaView accessibilityViewIsModal style={styles.helpSheet}>
             <View style={styles.sheetHandle} />
             <View style={styles.helpHeader}>
               <View style={styles.helpHeaderCopy}>
                 <Text style={styles.helpEyebrow}>HOW IT WORKS</Text>
-                <Text style={styles.helpTitle}>ScanLock help</Text>
+                <Text ref={helpTitleRef} accessibilityRole="header" style={styles.helpTitle}>ScanLock help</Text>
               </View>
               <Pressable
                 accessibilityRole="button"
@@ -179,13 +197,14 @@ export function LockStatusCard({ locked, lockElapsed, onScan }: Props) {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#F8F7FC" },
-  container: { flex: 1, paddingHorizontal: 24, paddingTop: 18, paddingBottom: 22, overflow: "hidden" },
+  screenScroll: { flex: 1 },
+  container: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 18, paddingBottom: 22, overflow: "hidden" },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", zIndex: 1 },
   brandRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   brandMark: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "#7057E8" },
   brand: { color: "#201C2B", fontSize: 20, fontWeight: "800", letterSpacing: -0.4 },
   helpButton: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: "#EFECFF", borderWidth: 1, borderColor: "#E2DCF9" },
-  iconButtonPressed: { transform: [{ scale: 0.94 }], opacity: 0.8 },
+  iconButtonPressed: { opacity: 0.72 },
   glow: { position: "absolute", width: 420, height: 420, borderRadius: 210, top: 90, alignSelf: "center", opacity: 0.75 },
   content: { flex: 1, alignItems: "center", justifyContent: "center", marginTop: 18 },
   lockCircle: { width: 178, height: 178, borderRadius: 89, alignItems: "center", justifyContent: "center", marginBottom: 28 },
@@ -194,17 +213,17 @@ const styles = StyleSheet.create({
   statusDot: { width: 7, height: 7, borderRadius: 4 },
   statusText: { fontSize: 12, fontWeight: "800", letterSpacing: 1.2 },
   title: { color: "#201C2B", fontSize: 32, lineHeight: 38, fontWeight: "800", letterSpacing: -1, textAlign: "center", maxWidth: 330 },
-  subtitle: { color: "#6E687A", fontSize: 16, lineHeight: 24, textAlign: "center", maxWidth: 330, marginTop: 12 },
+  subtitle: { color: "#5F596B", fontSize: 16, lineHeight: 24, textAlign: "center", maxWidth: 330, marginTop: 12 },
   timer: { alignItems: "center", marginTop: 22, paddingHorizontal: 22, paddingVertical: 14, borderRadius: 18, backgroundColor: "rgba(255, 255, 255, 0.8)", borderWidth: 1, borderColor: "#F2DAD4" },
-  timerLabel: { color: "#E46C55", fontSize: 10, fontWeight: "800", letterSpacing: 1.4 },
+  timerLabel: { color: "#B83F31", fontSize: 10, fontWeight: "800", letterSpacing: 1.4 },
   timerValue: { color: "#201C2B", fontSize: 32, lineHeight: 39, fontWeight: "800", letterSpacing: 2, fontVariant: ["tabular-nums"], marginTop: 2 },
-  timerUnits: { color: "#888397", fontSize: 8, fontWeight: "700", letterSpacing: 0.7 },
+  timerUnits: { color: "#625D6F", fontSize: 9, fontWeight: "700", letterSpacing: 0.7 },
   footer: { gap: 16 },
-  scanButton: { height: 58, borderRadius: 18, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#7057E8", shadowColor: "#7057E8", shadowOpacity: 0.3, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
-  scanButtonPressed: { transform: [{ scale: 0.985 }], opacity: 0.92 },
+  scanButton: { minHeight: 58, borderRadius: 18, paddingHorizontal: 20, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#7057E8", shadowColor: "#7057E8", shadowOpacity: 0.3, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  scanButtonPressed: { opacity: 0.82 },
   scanButtonText: { color: "#FFFFFF", fontSize: 17, fontWeight: "700" },
   secureRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 6 },
-  secureText: { color: "#888397", fontSize: 12 },
+  secureText: { flexShrink: 1, color: "#625D6F", fontSize: 12, textAlign: "center" },
   modalRoot: { flex: 1, justifyContent: "flex-end" },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(32, 28, 43, 0.38)" },
   helpSheet: { height: "82%", backgroundColor: "#F8F7FC", borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingTop: 10, shadowColor: "#201C2B", shadowOpacity: 0.18, shadowRadius: 24, shadowOffset: { width: 0, height: -8 }, elevation: 16 },
@@ -221,5 +240,5 @@ const styles = StyleSheet.create({
   helpBubbleCopy: { flex: 1 },
   helpBubbleNumber: { color: "#7057E8", fontSize: 10, fontWeight: "800", letterSpacing: 1.2, marginBottom: 4 },
   helpBubbleTitle: { color: "#201C2B", fontSize: 17, lineHeight: 22, fontWeight: "800" },
-  helpBubbleBody: { color: "#6E687A", fontSize: 14, lineHeight: 21, marginTop: 6 },
+  helpBubbleBody: { color: "#5F596B", fontSize: 14, lineHeight: 21, marginTop: 6 },
 });

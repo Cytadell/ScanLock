@@ -3,16 +3,20 @@ import { ScanStatus } from "@/hooks/use-lock-scanner";
 import { BarcodeScanningResult, CameraView } from "expo-camera";
 import { useEffect, useRef } from "react";
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   Animated,
   Easing,
   Linking,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import { useReduceMotion } from "@/hooks/use-reduce-motion";
 
 type Props = {
   status: ScanStatus;
@@ -37,11 +41,15 @@ export function ScannerView({
 }: Props) {
   const scanLine = useRef(new Animated.Value(0)).current;
   const frameScale = useRef(new Animated.Value(1)).current;
+  const reduceMotion = useReduceMotion();
+  const { width, height } = useWindowDimensions();
   const canUseCamera = !["requesting-permission", "permission-denied"].includes(status);
+  const frameSize = Math.max(210, Math.min(286, width - 64, height * 0.36));
 
   useEffect(() => {
-    if (status !== "scanning") {
+    if (status !== "scanning" || reduceMotion) {
       scanLine.stopAnimation();
+      scanLine.setValue(0);
       return;
     }
 
@@ -53,25 +61,33 @@ export function ScannerView({
     );
     animation.start();
     return () => animation.stop();
-  }, [scanLine, status]);
+  }, [reduceMotion, scanLine, status]);
 
   useEffect(() => {
-    if (status === "success") {
+    if (status === "success" && !reduceMotion) {
       Animated.sequence([
         Animated.spring(frameScale, { toValue: 1.05, useNativeDriver: true }),
         Animated.spring(frameScale, { toValue: 1, useNativeDriver: true }),
       ]).start();
     }
-  }, [frameScale, status]);
+  }, [frameScale, reduceMotion, status]);
 
-  const successColor = locked ? "#E46C55" : "#16A079";
+  const successColor = locked ? "#B83F31" : "#08785A";
   const frameColor = status === "success" ? successColor : ["error", "invalid-code"].includes(status) ? "#FF6B6B" : "#FFFFFF";
   const message = getStatusMessage(status, locked, errorMessage);
+
+  useEffect(() => {
+    const announcement = getStatusAnnouncement(status, locked, errorMessage);
+    if (announcement) AccessibilityInfo.announceForAccessibility(announcement);
+  }, [errorMessage, locked, status]);
 
   return (
     <View style={styles.container}>
       {canUseCamera ? (
         <CameraView
+          accessible={false}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
           style={StyleSheet.absoluteFillObject}
           facing="back"
           enableTorch={torchEnabled}
@@ -85,12 +101,12 @@ export function ScannerView({
 
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.topBar}>
-          <Pressable accessibilityLabel="Close scanner" onPress={onClose} style={styles.circleButton}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Close scanner" onPress={onClose} style={styles.circleButton}>
             <MaterialIcons name="close" size={25} color="#FFFFFF" />
           </Pressable>
           <View style={styles.titleBlock}>
             <Text style={styles.eyebrow}>SCANLOCK</Text>
-            <Text style={styles.headerTitle}>Scan your QR code</Text>
+            <Text accessibilityRole="header" style={styles.headerTitle}>Scan your QR code</Text>
           </View>
           <View style={styles.topSpacer} />
         </View>
@@ -103,12 +119,30 @@ export function ScannerView({
               </View>
               <Text style={styles.permissionTitle}>Camera access is off</Text>
               <Text style={styles.permissionText}>Allow camera access in Settings so ScanLock can read QR codes.</Text>
-              <Pressable style={styles.settingsButton} onPress={() => Linking.openSettings()}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityHint="Opens the iOS Settings app"
+                style={styles.settingsButton}
+                onPress={() => Linking.openSettings()}
+              >
                 <Text style={styles.settingsButtonText}>Open Settings</Text>
               </Pressable>
             </View>
           ) : (
-            <Animated.View style={[styles.scanFrame, { borderColor: frameColor, transform: [{ scale: frameScale }] }]}>
+            <Animated.View
+              accessible={false}
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              style={[
+                styles.scanFrame,
+                {
+                  width: frameSize,
+                  height: frameSize,
+                  borderColor: frameColor,
+                  transform: [{ scale: frameScale }],
+                },
+              ]}
+            >
               <View style={[styles.corner, styles.topLeft, { borderColor: frameColor }]} />
               <View style={[styles.corner, styles.topRight, { borderColor: frameColor }]} />
               <View style={[styles.corner, styles.bottomLeft, { borderColor: frameColor }]} />
@@ -118,7 +152,7 @@ export function ScannerView({
                 <Animated.View
                   style={[
                     styles.scanLine,
-                    { transform: [{ translateY: scanLine.interpolate({ inputRange: [0, 1], outputRange: [12, 252] }) }] },
+                    { transform: [{ translateY: scanLine.interpolate({ inputRange: [0, 1], outputRange: [12, frameSize - 34] }) }] },
                   ]}
                 />
               )}
@@ -140,10 +174,10 @@ export function ScannerView({
 
           {status !== "permission-denied" && (
             <View style={styles.messageBlock}>
-              <Text style={styles.messageTitle}>{message.title}</Text>
+              <Text accessibilityRole="header" accessibilityLiveRegion="polite" style={styles.messageTitle}>{message.title}</Text>
               <Text style={styles.messageText}>{message.detail}</Text>
               {(status === "error" || status === "invalid-code") && (
-                <Pressable style={styles.retryButton} onPress={onRetry}>
+                <Pressable accessibilityRole="button" style={styles.retryButton} onPress={onRetry}>
                   <MaterialIcons name="refresh" size={19} color="#18151F" />
                   <Text style={styles.retryText}>Try again</Text>
                 </Pressable>
@@ -154,7 +188,13 @@ export function ScannerView({
 
         <View style={styles.bottomBar}>
           {canUseCamera && status === "scanning" ? (
-            <Pressable accessibilityLabel="Toggle flashlight" onPress={onToggleTorch} style={styles.torchControl}>
+            <Pressable
+              accessibilityRole="switch"
+              accessibilityLabel="Flashlight"
+              accessibilityState={{ checked: torchEnabled }}
+              onPress={onToggleTorch}
+              style={styles.torchControl}
+            >
               <View style={[styles.circleButton, torchEnabled && styles.circleButtonActive]}>
                 <MaterialIcons name={torchEnabled ? "flashlight-on" : "flashlight-off"} size={24} color="#FFFFFF" />
               </View>
@@ -167,6 +207,25 @@ export function ScannerView({
       </SafeAreaView>
     </View>
   );
+}
+
+function getStatusAnnouncement(status: ScanStatus, isLocked: boolean, errorMessage?: string) {
+  switch (status) {
+    case "requesting-permission":
+      return "Getting the camera ready. You may be asked to allow camera access.";
+    case "scanning":
+      return "Camera ready. Position your ScanLock QR code in the frame.";
+    case "verifying":
+      return "QR code detected. Verifying.";
+    case "success":
+      return isLocked ? "Apps locked." : "Apps unlocked.";
+    case "invalid-code":
+      return "That is not your ScanLock QR code. Try again.";
+    case "permission-denied":
+      return "Camera access is off. Open Settings to allow camera access.";
+    case "error":
+      return errorMessage ?? "Could not update your apps. Try again.";
+  }
 }
 
 function getStatusMessage(status: ScanStatus, isLocked: boolean, errorMessage?: string) {
@@ -199,7 +258,7 @@ const styles = StyleSheet.create({
   headerTitle: { color: "#FFFFFF", fontSize: 18, fontWeight: "700", marginTop: 2 },
   topSpacer: { width: 48 },
   centerContent: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
-  scanFrame: { width: 286, height: 286, borderRadius: 30, borderWidth: 1, borderColor: "rgba(255,255,255,0.3)", backgroundColor: "rgba(0,0,0,0.08)", alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  scanFrame: { borderRadius: 30, borderWidth: 1, borderColor: "rgba(255,255,255,0.3)", backgroundColor: "rgba(0,0,0,0.08)", alignItems: "center", justifyContent: "center", overflow: "hidden" },
   corner: { position: "absolute", width: 50, height: 50, borderWidth: 4 },
   topLeft: { top: -1, left: -1, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 30 },
   topRight: { top: -1, right: -1, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 30 },
@@ -210,17 +269,17 @@ const styles = StyleSheet.create({
   errorIcon: { backgroundColor: "#FF6B6B" },
   messageBlock: { minHeight: 116, alignItems: "center", marginTop: 28 },
   messageTitle: { color: "#FFFFFF", fontSize: 21, fontWeight: "700", textAlign: "center" },
-  messageText: { color: "rgba(255,255,255,0.68)", fontSize: 14, lineHeight: 21, textAlign: "center", marginTop: 7, maxWidth: 300 },
-  retryButton: { flexDirection: "row", alignItems: "center", gap: 7, backgroundColor: "#FFFFFF", paddingHorizontal: 18, paddingVertical: 11, borderRadius: 99, marginTop: 16 },
+  messageText: { color: "rgba(255,255,255,0.82)", fontSize: 14, lineHeight: 21, textAlign: "center", marginTop: 7, maxWidth: 300 },
+  retryButton: { minHeight: 48, flexDirection: "row", alignItems: "center", gap: 7, backgroundColor: "#FFFFFF", paddingHorizontal: 18, paddingVertical: 11, borderRadius: 99, marginTop: 16 },
   retryText: { color: "#18151F", fontSize: 14, fontWeight: "700" },
   bottomBar: { height: 108, alignItems: "center", justifyContent: "flex-start" },
   torchControl: { alignItems: "center", gap: 8 },
-  torchText: { color: "rgba(255,255,255,0.72)", fontSize: 12 },
+  torchText: { color: "rgba(255,255,255,0.88)", fontSize: 12 },
   bottomPlaceholder: { height: 70 },
   permissionCard: { width: "100%", maxWidth: 350, padding: 28, borderRadius: 28, backgroundColor: "#FFFFFF", alignItems: "center" },
   permissionIcon: { width: 70, height: 70, borderRadius: 35, backgroundColor: "#EFECFF", alignItems: "center", justifyContent: "center", marginBottom: 18 },
   permissionTitle: { color: "#201C2B", fontSize: 23, fontWeight: "800", textAlign: "center" },
   permissionText: { color: "#6E687A", fontSize: 15, lineHeight: 22, textAlign: "center", marginTop: 9 },
-  settingsButton: { backgroundColor: "#7057E8", paddingHorizontal: 22, paddingVertical: 13, borderRadius: 14, marginTop: 22 },
+  settingsButton: { minHeight: 48, justifyContent: "center", backgroundColor: "#7057E8", paddingHorizontal: 22, paddingVertical: 13, borderRadius: 14, marginTop: 22 },
   settingsButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
 });

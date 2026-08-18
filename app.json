@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "scanlock",
+    "name": "ScanLock",
     "slug": "scanlock",
     "version": "1.0.0",
     "icon": "./assets/images/icon.png",
     "orientation": "portrait",
     "scheme": "scanlock",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "icon": "./assets/images/icon.png",
@@ -16,7 +16,8 @@
         "com.apple.developer.family-controls": true
       },
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "ScanLock uses the camera only to scan your ScanLock QR key."
       }
     },
     "extra": {
@@ -40,6 +41,14 @@
     },
     "plugins": [
       "expo-router",
+      "./plugins/with-camera-only-permissions",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "ScanLock uses the camera only to scan your ScanLock QR key.",
+          "recordAudioAndroid": false
+        }
+      ],
       [
         "expo-splash-screen",
         {

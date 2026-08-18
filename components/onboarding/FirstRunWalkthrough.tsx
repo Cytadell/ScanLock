@@ -1,19 +1,23 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   Alert,
+  findNodeHandle,
   Pressable,
-  SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import QRCode from "react-native-qrcode-svg";
 
 import { requestAuthorization, selectApps } from "@/services/appBlocker";
 import { getOrCreateQrPayload } from "@/services/qrCode";
+import { useReduceMotion } from "@/hooks/use-reduce-motion";
 
 type WalkthroughProps = {
   onComplete: () => Promise<void>;
@@ -26,6 +30,8 @@ export function FirstRunWalkthrough({ onComplete }: WalkthroughProps) {
   const [qrPayload, setQrPayload] = useState<string | null>(null);
   const [isChoosingApps, setIsChoosingApps] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
+  const stepHeadingRef = useRef<Text>(null);
+  const reduceMotion = useReduceMotion();
   const { width } = useWindowDimensions();
   const compact = width < 700;
 
@@ -39,6 +45,15 @@ export function FirstRunWalkthrough({ onComplete }: WalkthroughProps) {
         Alert.alert("QR code unavailable", "ScanLock could not create your QR code. Please try again.");
       });
   }, [qrPayload, step]);
+
+  useEffect(() => {
+    if (step === 0) return;
+    const timeout = setTimeout(() => {
+      const node = findNodeHandle(stepHeadingRef.current);
+      if (node) AccessibilityInfo.setAccessibilityFocus(node);
+    }, reduceMotion ? 0 : 250);
+    return () => clearTimeout(timeout);
+  }, [reduceMotion, step]);
 
   async function chooseApps() {
     try {
@@ -83,7 +98,7 @@ export function FirstRunWalkthrough({ onComplete }: WalkthroughProps) {
       <View style={[styles.shell, compact && styles.shellCompact]}>
         <View style={[styles.rail, compact && styles.railCompact]}>
           <View style={[styles.brand, compact && styles.brandCompact]}>
-            <View style={styles.brandMark}>
+            <View accessible={false} style={styles.brandMark}>
               <MaterialIcons name="qr-code-scanner" size={20} color="#FFFFFF" />
             </View>
             <Text style={styles.brandText}>ScanLock</Text>
@@ -91,7 +106,12 @@ export function FirstRunWalkthrough({ onComplete }: WalkthroughProps) {
 
           <View style={[styles.progress, compact && styles.progressCompact]}>
             {STEPS.map((label, index) => (
-              <View key={label} style={[styles.progressItem, compact && styles.progressItemCompact]}>
+              <View
+                key={label}
+                accessible
+                accessibilityLabel={`${label}, step ${index + 1} of ${STEPS.length}${index === step ? ", current step" : ""}`}
+                style={[styles.progressItem, compact && styles.progressItemCompact]}
+              >
                 <View style={[styles.stepNumber, index === step && styles.stepNumberActive]}>
                   <Text style={[styles.stepNumberText, index === step && styles.stepNumberTextActive]}>{index + 1}</Text>
                 </View>
@@ -108,16 +128,30 @@ export function FirstRunWalkthrough({ onComplete }: WalkthroughProps) {
 
         <View style={styles.main}>
           <View style={styles.topBar}>
-            <Pressable accessibilityRole="button" onPress={finish} hitSlop={12}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityHint="Finishes onboarding without selecting apps or reviewing the remaining setup steps"
+              disabled={isCompleting}
+              accessibilityState={{ disabled: isCompleting, busy: isCompleting }}
+              onPress={finish}
+              hitSlop={12}
+            >
               <Text style={styles.skipText}>Skip setup</Text>
             </Pressable>
           </View>
 
-          <View style={styles.content}>{renderStep(step, qrPayload, isChoosingApps, chooseApps)}</View>
+          <ScrollView
+            style={styles.contentScroll}
+            contentContainerStyle={styles.content}
+            showsVerticalScrollIndicator={false}
+          >
+            {renderStep(step, qrPayload, isChoosingApps, chooseApps, stepHeadingRef)}
+          </ScrollView>
 
           <View style={styles.actions}>
             <Pressable
               accessibilityRole="button"
+              accessibilityState={{ disabled: step === 0 }}
               disabled={step === 0}
               onPress={() => setStep((current) => Math.max(0, current - 1))}
               style={({ pressed }) => [styles.backButton, step === 0 && styles.hidden, pressed && styles.pressed]}
@@ -128,6 +162,7 @@ export function FirstRunWalkthrough({ onComplete }: WalkthroughProps) {
 
             <Pressable
               accessibilityRole="button"
+              accessibilityState={{ disabled: isCompleting, busy: isCompleting }}
               disabled={isCompleting}
               onPress={goForward}
               style={({ pressed }) => [styles.nextButton, pressed && styles.pressed]}
@@ -152,14 +187,15 @@ function renderStep(
   step: number,
   qrPayload: string | null,
   isChoosingApps: boolean,
-  chooseApps: () => Promise<void>
+  chooseApps: () => Promise<void>,
+  headingRef: React.RefObject<Text | null>
 ) {
   if (step === 0) {
     return (
       <View>
         <View style={styles.heroIcon}><MaterialIcons name="shield" size={43} color="#7057E8" /></View>
         <Text style={styles.eyebrow}>WELCOME TO SCANLOCK</Text>
-        <Text style={styles.title}>Put some distance between you and distraction.</Text>
+        <Text ref={headingRef} accessibilityRole="header" style={styles.title}>Put some distance between you and distraction.</Text>
         <Text style={styles.body}>ScanLock creates a QR code that acts as a physical key for the apps you choose. Scan it to lock them, and scan it again when you are ready to unlock them.</Text>
       </View>
     );
@@ -169,10 +205,11 @@ function renderStep(
     return (
       <View>
         <Text style={styles.eyebrow}>CHOOSE APPS</Text>
-        <Text style={styles.title}>Which apps should ScanLock control?</Text>
+        <Text ref={headingRef} accessibilityRole="header" style={styles.title}>Which apps should ScanLock control?</Text>
         <Text style={styles.body}>Your iPhone&apos;s built-in selector lets you privately choose apps, categories, and websites.</Text>
         <Pressable
           accessibilityRole="button"
+          accessibilityState={{ disabled: isChoosingApps, busy: isChoosingApps }}
           disabled={isChoosingApps}
           onPress={chooseApps}
           style={({ pressed }) => [styles.pickerCard, pressed && styles.pressed]}
@@ -193,10 +230,10 @@ function renderStep(
     return (
       <View>
         <Text style={styles.eyebrow}>CREATE YOUR KEY</Text>
-        <Text style={styles.title}>Your ScanLock QR code.</Text>
+        <Text ref={headingRef} accessibilityRole="header" style={styles.title}>Your ScanLock QR code.</Text>
         <Text style={styles.body}>This unique code controls the apps you selected. Use the same code to lock and unlock them.</Text>
-        <View style={styles.qrContainer}>
-          {qrPayload ? <QRCode value={qrPayload} size={190} color="#201C2B" backgroundColor="#FFFFFF" /> : <ActivityIndicator size="large" color="#7057E8" />}
+        <View accessible accessibilityLabel={qrPayload ? "Your ScanLock QR key" : "Generating your ScanLock QR key"} style={styles.qrContainer}>
+          {qrPayload ? <QRCode value={qrPayload} size={190} color="#201C2B" backgroundColor="#FFFFFF" /> : <ActivityIndicator accessibilityLabel="Generating your ScanLock QR key" size="large" color="#7057E8" />}
         </View>
         <Note icon="download" text="You can save, share, or print this QR code later from the Get Lock tab." />
       </View>
@@ -206,7 +243,7 @@ function renderStep(
   return (
     <View>
       <Text style={styles.eyebrow}>HOW SCANNING WORKS</Text>
-      <Text style={styles.title}>Your QR code becomes the key.</Text>
+      <Text ref={headingRef} accessibilityRole="header" style={styles.title}>Your QR code becomes the key.</Text>
       <Text style={styles.body}>Keep it somewhere intentional—across the room, by the door, or anywhere that creates the right amount of friction.</Text>
       <View style={styles.mechanismRow}>
         <Mechanism icon="qr-code-scanner" title="Scan" text="Open ScanLock and point the camera at your code." />
@@ -249,32 +286,33 @@ const styles = StyleSheet.create({
   stepNumberTextActive: { color: "#FFFFFF" },
   stepLabel: { color: "#888397", fontSize: 13, fontWeight: "700" },
   stepLabelActive: { color: "#201C2B" },
-  stepHint: { color: "#AAA5B4", fontSize: 11, marginTop: 2 },
+  stepHint: { color: "#6E687A", fontSize: 11, marginTop: 2 },
   main: { flex: 1, paddingHorizontal: 24, paddingBottom: 22 },
   topBar: { minHeight: 52, alignItems: "flex-end", justifyContent: "center" },
-  skipText: { color: "#777181", fontSize: 14, fontWeight: "600" },
-  content: { flex: 1, width: "100%", maxWidth: 620, alignSelf: "center", justifyContent: "center", paddingVertical: 20 },
+  skipText: { color: "#5F596B", fontSize: 14, fontWeight: "600" },
+  contentScroll: { flex: 1, width: "100%", maxWidth: 620, alignSelf: "center" },
+  content: { flexGrow: 1, justifyContent: "center", paddingVertical: 20 },
   heroIcon: { width: 88, height: 88, borderRadius: 27, backgroundColor: "#EFECFF", alignItems: "center", justifyContent: "center", marginBottom: 25 },
   eyebrow: { color: "#7057E8", fontSize: 11, fontWeight: "800", letterSpacing: 1.5, marginBottom: 8 },
   title: { color: "#201C2B", fontSize: 34, lineHeight: 40, fontWeight: "800", letterSpacing: -1, maxWidth: 560 },
-  body: { color: "#6E687A", fontSize: 15, lineHeight: 23, marginTop: 12, maxWidth: 540 },
+  body: { color: "#5F596B", fontSize: 15, lineHeight: 23, marginTop: 12, maxWidth: 540 },
   pickerCard: { minHeight: 76, marginTop: 28, borderRadius: 20, borderWidth: 1, borderColor: "#E4E0ED", backgroundColor: "#FFFFFF", padding: 15, flexDirection: "row", alignItems: "center", gap: 13 },
   pickerIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: "#EFECFF", alignItems: "center", justifyContent: "center" },
   pickerCopy: { flex: 1 },
   pickerTitle: { color: "#201C2B", fontSize: 16, fontWeight: "800" },
-  pickerHint: { color: "#777181", fontSize: 12, marginTop: 3 },
+  pickerHint: { color: "#5F596B", fontSize: 12, marginTop: 3 },
   note: { flexDirection: "row", alignItems: "flex-start", gap: 8, marginTop: 17 },
-  noteText: { flex: 1, color: "#888397", fontSize: 12, lineHeight: 18 },
+  noteText: { flex: 1, color: "#625D6F", fontSize: 12, lineHeight: 18 },
   qrContainer: { width: 222, height: 222, alignSelf: "center", marginTop: 25, borderRadius: 24, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E9E6F0", alignItems: "center", justifyContent: "center" },
   mechanismRow: { flexDirection: "row", flexWrap: "wrap", gap: 14, marginTop: 30 },
   mechanism: { flexGrow: 1, flexBasis: 155, borderTopWidth: 1, borderTopColor: "#DCD8E6", paddingTop: 16 },
   mechanismTitle: { color: "#201C2B", fontSize: 15, fontWeight: "800", marginTop: 10 },
-  mechanismText: { color: "#777181", fontSize: 12, lineHeight: 18, marginTop: 5 },
+  mechanismText: { color: "#5F596B", fontSize: 12, lineHeight: 18, marginTop: 5 },
   actions: { minHeight: 62, width: "100%", maxWidth: 620, alignSelf: "center", flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 20 },
   backButton: { minHeight: 48, flexDirection: "row", alignItems: "center", gap: 7 },
   backText: { color: "#777181", fontSize: 15, fontWeight: "700" },
-  nextButton: { minWidth: 136, height: 52, borderRadius: 16, paddingHorizontal: 18, backgroundColor: "#7057E8", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9 },
+  nextButton: { minWidth: 136, minHeight: 52, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 12, backgroundColor: "#7057E8", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9 },
   nextText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
   hidden: { opacity: 0 },
-  pressed: { opacity: 0.86, transform: [{ scale: 0.985 }] },
+  pressed: { opacity: 0.72 },
 });

@@ -9,7 +9,7 @@ export default function HomeScreen() {
   if (scanner.isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#7057E8" />
+        <ActivityIndicator accessibilityLabel="Loading ScanLock status" size="large" color="#7057E8" />
       </View>
     );
   }
