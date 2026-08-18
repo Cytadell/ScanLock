@@ -44,17 +44,6 @@ Invalid, malformed, replaced, or unrelated QR codes do not change the lock state
   </tr>
 </table>
 
-## Features
-
-- Select which apps ScanLock protects.
-- Generate, print, share, and replace a device-specific QR key.
-- Lock and unlock only after a matching QR scan.
-- Track how long the current locked session has lasted.
-- Preserve app selection and lock state across relaunches.
-- Prevent selection and QR-key changes while locked.
-- Recover through a deliberately labeled emergency-unlock flow.
-- Use a simulated blocker in Expo Go for JavaScript and UI development.
-
 ## Platform support
 
 | Platform | Blocking mechanism | Current validation |
@@ -72,10 +61,14 @@ Real app blocking cannot be tested in Expo Go. Use a native development, preview
 
 - Node.js 22.13 or newer
 - npm
-- An Expo account for EAS cloud builds
+If building android locally:
 - Android Studio and the Android SDK for local Android native builds
+If building ios locally:
 - macOS and Xcode for local iOS native builds
-- An Apple Developer account, Family Controls entitlement access, and a physical iPhone or iPad for complete iOS validation
+- (For ios) An Apple Developer account, Family Controls entitlement access, and a physical iPhone or iPad for complete iOS validation
+If building with Expo EAS cloud
+- An Expo account for EAS cloud builds (you will still need an Apple Developer account to build ios)
+
 
 ### Install
 
@@ -93,7 +86,7 @@ npm install
 npm start
 ```
 
-This starts Expo's development server. Expo Go can be used to inspect most of the interface with the simulated app-blocker service, but it cannot load ScanLock's custom Swift or Kotlin modules.
+This starts Expo's development server. Expo Go can be used to inspect most of the interface with the simulated app-blocker service, but it cannot load ScanLock's custom Swift or Kotlin modules. Instead these native features are simulated for testing purposes.
 
 ### Run a native development build
 
@@ -220,42 +213,20 @@ npx eas-cli@latest workflow:run .eas/workflows/test-and-build.yml
 
 Pushes to `main` do not automatically consume an EAS build. The workflow runs only when explicitly requested.
 
-## Project structure
+## Codebase guide
 
-```text
-scanlock/
-├── app/                       Expo Router screens and layouts
-├── components/                Reusable interface components
-├── hooks/                     Scanner, timer, settings, and sharing behavior
-├── services/                  QR, persistence, and native-module boundary
-├── modules/app-blocker/       Swift and Kotlin Expo native module
-├── native-tests/ios/          Committed XCTest sources
-├── tests/                     Jest and React Native Testing Library suites
-├── plugins/                   Expo config plugins
-├── scripts/                   Test and development scripts
-├── .eas/workflows/            Manually triggered test/build workflow
-├── app.json                   Expo application and native configuration
-└── eas.json                   EAS build profiles
-```
+- `app/` — Expo Router screens and layouts
+- `modules/app-blocker/` — Swift and Kotlin native blocking implementations
+- `services/` — QR logic, persistence, and the native-module boundary
+- `native-tests/ios/` — XCTest coverage for native state and recovery
+- `tests/` — Jest and React Native Testing Library suites
+- `plugins/` — Expo Prebuild configuration, including XCTest target generation
 
 ## Current limitations and release status
 
 - Android still requires validation on multiple physical devices and manufacturers.
-- iOS Family Controls must be tested using a native build on physical hardware.
 - App Store distribution requires approval for the Family Controls distribution entitlement.
 - Production privacy metadata, support/privacy URLs, and final release smoke testing remain outstanding.
-- The universal QR key is for development and preview testing only and is disabled in production builds.
+
 
 See the repository-level `TODO` file and native manual-test checklists for the remaining release work.
-
-## Contributing
-
-Keep changes to the native module synchronized across the TypeScript contract, Swift and Kotlin implementations, and their tests. Do not commit generated `ios/`, `android/`, `.expo/`, `coverage/`, native build output, credentials, provisioning profiles, or local environment files.
-
-When adding or changing native behavior:
-
-1. Update the public TypeScript contract.
-2. Update the applicable Swift or Kotlin implementation.
-3. Add application-level tests for the bridge behavior.
-4. Add native tests for behavior below the JavaScript boundary.
-5. Exercise the appropriate physical-device checklist before release.
