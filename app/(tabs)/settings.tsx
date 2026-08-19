@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 import {
   AccessibilityInfo,
   findNodeHandle,
+  Linking,
   Modal,
   Pressable,
   ScrollView,
@@ -14,6 +15,14 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+const PRIVACY_POLICY_URL = process.env.EXPO_PUBLIC_SCANLOCK_PRIVACY_URL?.trim();
+const SUPPORT_URL = process.env.EXPO_PUBLIC_SCANLOCK_SUPPORT_URL?.trim();
+const LEGAL_LINKS_CONFIGURED = Boolean(PRIVACY_POLICY_URL && SUPPORT_URL);
+
+function openConfiguredUrl(url: string | undefined) {
+  if (url) void Linking.openURL(url);
+}
 
 export default function SettingsScreen() {
   const {
@@ -199,6 +208,48 @@ export default function SettingsScreen() {
           </Pressable>
         </View>
 
+        {LEGAL_LINKS_CONFIGURED && (
+          <>
+            <View style={styles.sectionLabelRow}>
+              <Text style={styles.sectionLabel}>LEGAL &amp; SUPPORT</Text>
+            </View>
+
+            <View style={[styles.card, styles.linksCard]}>
+              <Pressable
+                accessibilityRole="link"
+                accessibilityHint="Opens the ScanLock privacy policy in your browser"
+                onPress={() => openConfiguredUrl(PRIVACY_POLICY_URL)}
+                style={({ pressed }) => [styles.settingsLink, pressed && styles.buttonPressed]}
+              >
+                <View style={styles.linkIcon}>
+                  <MaterialIcons name="privacy-tip" size={22} color="#7057E8" />
+                </View>
+                <View style={styles.linkCopy}>
+                  <Text style={styles.linkTitle}>Privacy Policy</Text>
+                  <Text style={styles.linkDescription}>See how ScanLock handles your data.</Text>
+                </View>
+                <MaterialIcons name="open-in-new" size={20} color="#625D6F" />
+              </Pressable>
+              <View style={styles.linkDivider} />
+              <Pressable
+                accessibilityRole="link"
+                accessibilityHint="Opens the ScanLock support page in your browser"
+                onPress={() => openConfiguredUrl(SUPPORT_URL)}
+                style={({ pressed }) => [styles.settingsLink, pressed && styles.buttonPressed]}
+              >
+                <View style={styles.linkIcon}>
+                  <MaterialIcons name="help-outline" size={22} color="#7057E8" />
+                </View>
+                <View style={styles.linkCopy}>
+                  <Text style={styles.linkTitle}>Support</Text>
+                  <Text style={styles.linkDescription}>Get help or report a problem.</Text>
+                </View>
+                <MaterialIcons name="open-in-new" size={20} color="#625D6F" />
+              </Pressable>
+            </View>
+          </>
+        )}
+
         {__DEV__ && (
           <>
             <View style={styles.sectionLabelRow}>
@@ -294,6 +345,13 @@ const styles = StyleSheet.create({
   countPillText: { color: "#5F46D1", fontSize: 11, fontWeight: "700" },
   card: { backgroundColor: "#FFFFFF", borderRadius: 24, padding: 20, borderWidth: 1, borderColor: "#ECE9F2", shadowColor: "#251D4C", shadowOpacity: 0.06, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 3 },
   dangerCard: { borderColor: "#F2DCD7" },
+  linksCard: { padding: 0, overflow: "hidden" },
+  settingsLink: { minHeight: 72, paddingHorizontal: 18, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 12 },
+  linkIcon: { width: 40, height: 40, borderRadius: 13, backgroundColor: "#EFECFF", alignItems: "center", justifyContent: "center" },
+  linkCopy: { flex: 1 },
+  linkTitle: { color: "#201C2B", fontSize: 16, fontWeight: "700" },
+  linkDescription: { color: "#5F596B", fontSize: 13, lineHeight: 18, marginTop: 2 },
+  linkDivider: { height: 1, marginLeft: 70, backgroundColor: "#ECE9F2" },
   debugCard: { borderColor: "#D5E5DC" },
   debugStackedCard: { marginTop: 12 },
   cardTopRow: { flexDirection: "row", alignItems: "flex-start", gap: 14 },

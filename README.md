@@ -187,6 +187,24 @@ Build profiles are defined in `eas.json`:
 - `preview`: internal distribution build
 - `production`: store-oriented build
 
+### Publisher-specific legal links
+
+Privacy-policy and support URLs are build configuration, not repository defaults. For local development, copy `.env.example` to the gitignored `.env.local` file and provide your own values:
+
+```dotenv
+EXPO_PUBLIC_SCANLOCK_PRIVACY_URL=https://example.com/privacy/
+EXPO_PUBLIC_SCANLOCK_SUPPORT_URL=https://example.com/support/
+```
+
+When these variables are absent, development and preview builds omit the Legal & Support section from the Settings tab. Before building for an app store, configure both variables in the EAS `production` environment:
+
+```sh
+eas env:set --name EXPO_PUBLIC_SCANLOCK_PRIVACY_URL --value https://example.com/privacy/ --environment production --visibility plaintext
+eas env:set --name EXPO_PUBLIC_SCANLOCK_SUPPORT_URL --value https://example.com/support/ --environment production --visibility plaintext
+```
+
+The production build hook stops the build if either URL is missing. These values are publisher-specific but not secret: Expo embeds `EXPO_PUBLIC_` variables in the compiled application.
+
 iOS builds:
 
 ```sh

@@ -13,6 +13,7 @@
       "autoIncrement": true
     },
     "production": {
+      "environment": "production",
       "autoIncrement": true
     }
   },
