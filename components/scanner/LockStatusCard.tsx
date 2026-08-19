@@ -201,7 +201,7 @@ export function LockStatusCard({ locked, lockElapsed, onScan }: Props) {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#F8F7FC" },
   screenScroll: { flex: 1 },
-  container: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 18, paddingBottom: 22, overflow: "hidden" },
+  container: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 18, paddingBottom: 40 },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", zIndex: 1 },
   brandRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   brandMark: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "#7057E8" },
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   timerLabel: { color: "#B83F31", fontSize: 10, fontWeight: "800", letterSpacing: 1.4 },
   timerValue: { color: "#201C2B", fontSize: 32, lineHeight: 39, fontWeight: "800", letterSpacing: 2, fontVariant: ["tabular-nums"], marginTop: 2 },
   timerUnits: { color: "#625D6F", fontSize: 9, fontWeight: "700", letterSpacing: 0.7 },
-  footer: { gap: 16 },
+  footer: { gap: 16, marginTop: 10 },
   scanButton: { minHeight: 58, borderRadius: 18, paddingHorizontal: 20, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#7057E8", shadowColor: "#7057E8", shadowOpacity: 0.3, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
   scanButtonPressed: { opacity: 0.82 },
   scanButtonText: { color: "#FFFFFF", fontSize: 17, fontWeight: "700" },

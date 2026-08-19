@@ -82,7 +82,7 @@ export default function GetLockScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#F8F7FC" },
   loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#F8F7FC" },
-  container: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 18, paddingBottom: 22 },
+  container: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 18, paddingBottom: 40 },
   header: { flexDirection: "row", alignItems: "center", gap: 14 },
   iconBadge: { width: 48, height: 48, borderRadius: 16, backgroundColor: "#EFECFF", alignItems: "center", justifyContent: "center" },
   headerCopy: { flex: 1 },
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   tipRow: { flexDirection: "row", alignItems: "center", gap: 11, padding: 14, borderRadius: 16, backgroundColor: "#EFECFF", marginBottom: 16 },
   tipIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
   tipText: { flex: 1, color: "#51486F", fontSize: 12, lineHeight: 18 },
-  shareButton: { minHeight: 58, borderRadius: 18, paddingHorizontal: 20, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#7057E8", shadowColor: "#7057E8", shadowOpacity: 0.3, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  shareButton: { minHeight: 58, marginTop: 10, borderRadius: 18, paddingHorizontal: 20, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#7057E8", shadowColor: "#7057E8", shadowOpacity: 0.3, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
   shareButtonPressed: { opacity: 0.82 },
   shareButtonText: { color: "#FFFFFF", fontSize: 17, fontWeight: "700" },
 });
