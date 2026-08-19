@@ -26,7 +26,7 @@ export function LockStatusCard({ locked, lockElapsed, onScan }: Props) {
   const helpItems = [
     {
       title: "Choose the apps you want to block",
-      body: "Open Settings, tap Choose apps, and select the apps you want ScanLock to protect.",
+      body: "Open the Settings tab, tap Choose apps, and select the apps you want ScanLock to protect.",
       icon: "apps" as const,
     },
     {
@@ -140,10 +140,6 @@ export function LockStatusCard({ locked, lockElapsed, onScan }: Props) {
             <Text style={styles.scanButtonText}>Scan to {locked ? "unlock" : "lock"}</Text>
             <MaterialIcons name="arrow-forward" size={21} color="#FFFFFF" />
           </Pressable>
-          <View accessible accessibilityLabel="Changes only happen after a successful scan" style={styles.secureRow}>
-            <MaterialIcons name="verified-user" size={15} color="#888397" />
-            <Text style={styles.secureText}>Changes only happen after a successful scan</Text>
-          </View>
         </View>
       </ScrollView>
 

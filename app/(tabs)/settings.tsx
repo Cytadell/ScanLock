@@ -1,5 +1,6 @@
-import { useSettings } from "@/hooks/use-settings";
 import { useOnboardingReplay } from "@/hooks/use-onboarding-replay";
+import { useReduceMotion } from "@/hooks/use-reduce-motion";
+import { useSettings } from "@/hooks/use-settings";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useEffect, useRef } from "react";
 import {
@@ -13,7 +14,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useReduceMotion } from "@/hooks/use-reduce-motion";
 
 export default function SettingsScreen() {
   const {
@@ -79,7 +79,7 @@ export default function SettingsScreen() {
             </View>
             <Text ref={emergencyTitleRef} accessibilityRole="header" style={styles.modalTitle}>Emergency unlock</Text>
             <Text style={styles.modalDescription}>
-              Only use Emergency Unlock if you need to. This will disable app blocking without your QR code.
+              Only use Emergency Unlock if you need to. This will disable app blocking without your ScanLock QR code.
             </Text>
 
             <Pressable
@@ -135,7 +135,7 @@ export default function SettingsScreen() {
             <MaterialIcons name="settings" size={25} color="#7057E8" />
           </View>
         </View>
-        <Text style={styles.subtitle}>Choose what ScanLock protects and manage your fallback access.</Text>
+        <Text style={styles.subtitle}>Choose what ScanLock restricts and manage your fallback access.</Text>
 
         <View style={styles.sectionLabelRow}>
           <Text style={styles.sectionLabel}>FOCUS</Text>
@@ -322,5 +322,5 @@ const styles = StyleSheet.create({
   modalUnlockButton: { width: "100%", minHeight: 52, paddingVertical: 13, marginTop: 24, alignItems: "center", justifyContent: "center", borderRadius: 15, backgroundColor: "#B83F31" },
   modalUnlockButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "800" },
   modalCancelButton: { width: "100%", minHeight: 48, paddingVertical: 12, marginTop: 8, alignItems: "center", justifyContent: "center", borderRadius: 15 },
-  modalCancelButtonText: { color: "#6E687A", fontSize: 15, fontWeight: "700" },
+  modalCancelButtonText: { color: "#514A5D", fontSize: 15, fontWeight: "700" },
 });

@@ -9,12 +9,11 @@ public final class AppBlockerModule: Module {
             do {
                 try await AuthorizationCenter.shared
                     .requestAuthorization(for: .individual)
-
-                return AuthorizationCenter.shared.authorizationStatus == .approved
+                return true
             } catch {
                 return false
             }
-        }
+        }.runOnQueue(.main)
 
         AsyncFunction("selectApps") {
             guard AuthorizationCenter.shared.authorizationStatus == .approved else {
@@ -26,7 +25,7 @@ public final class AppBlockerModule: Module {
             }
 
             return try await AppPickerPresenter.shared.present()
-        }
+        }.runOnQueue(.main)
 
         Function("isAuthorized") {
             AuthorizationCenter.shared.authorizationStatus == .approved

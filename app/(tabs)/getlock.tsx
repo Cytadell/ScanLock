@@ -1,16 +1,16 @@
 import { useGetLock } from "@/hooks/use-get-lock";
+import { QrKeyCard } from "@/components/qr/QrKeyCard";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import {
-    ActivityIndicator,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    useWindowDimensions,
-    View,
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import QRCode from "react-native-qrcode-svg";
 
 export default function GetLockScreen() {
   const { qrPayload, qrCardRef, shareQrCode } = useGetLock();
@@ -46,27 +46,12 @@ export default function GetLockScreen() {
         </View>
 
         <View style={styles.qrShell}>
-          <View
+          <QrKeyCard
             ref={qrCardRef}
-            accessible
-            accessibilityLabel="Your ScanLock QR key. Keep this code away from your phone."
-            collapsable={false}
-            style={[styles.qrCard, { width: qrCardWidth }]}
-          >
-            <View style={styles.cardBrandRow}>
-              <View style={styles.cardBrandMark}>
-                <MaterialIcons name="lock" size={16} color="#FFFFFF" />
-              </View>
-              <Text style={styles.cardBrand}>ScanLock</Text>
-            </View>
-
-            <View style={styles.qrCodeFrame}>
-              <QRCode value={qrPayload} size={qrSize} color="#201C2B" backgroundColor="#FFFFFF" />
-            </View>
-
-            <Text style={styles.cardTitle}>Your ScanLock key</Text>
-            <Text style={styles.cardInstruction}>Keep this code away from your phone</Text>
-          </View>
+            qrPayload={qrPayload}
+            width={qrCardWidth}
+            qrSize={qrSize}
+          />
         </View>
 
         <View style={styles.tipRow}>
@@ -80,12 +65,12 @@ export default function GetLockScreen() {
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Print or share QR code"
+          accessibilityLabel="Print or Share QR code"
           onPress={shareQrCode}
           style={({ pressed }) => [styles.shareButton, pressed && styles.shareButtonPressed]}
         >
           <MaterialIcons name="ios-share" size={22} color="#FFFFFF" />
-          <Text style={styles.shareButtonText}>Print or share</Text>
+          <Text style={styles.shareButtonText}>Print or Share</Text>
           <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
         </Pressable>
 
@@ -104,13 +89,6 @@ const styles = StyleSheet.create({
   eyebrow: { color: "#7057E8", fontSize: 11, fontWeight: "800", letterSpacing: 1.5, marginBottom: 3 },
   title: { color: "#201C2B", fontSize: 28, fontWeight: "800", letterSpacing: -0.8 },
   qrShell: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 14 },
-  qrCard: { backgroundColor: "#FFFFFF", borderRadius: 28, padding: 24, alignItems: "center", shadowColor: "#251D4C", shadowOpacity: 0.1, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 6 },
-  cardBrandRow: { alignSelf: "stretch", flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 20 },
-  cardBrandMark: { width: 28, height: 28, borderRadius: 9, backgroundColor: "#7057E8", alignItems: "center", justifyContent: "center" },
-  cardBrand: { color: "#201C2B", fontSize: 16, fontWeight: "800" },
-  qrCodeFrame: { padding: 10, backgroundColor: "#FFFFFF", borderRadius: 18, borderWidth: 1, borderColor: "#E9E6F0" },
-  cardTitle: { color: "#201C2B", fontSize: 19, fontWeight: "800", marginTop: 19 },
-  cardInstruction: { color: "#5F596B", fontSize: 13, lineHeight: 19, marginTop: 5, textAlign: "center" },
   tipRow: { flexDirection: "row", alignItems: "center", gap: 11, padding: 14, borderRadius: 16, backgroundColor: "#EFECFF", marginBottom: 16 },
   tipIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
   tipText: { flex: 1, color: "#51486F", fontSize: 12, lineHeight: 18 },

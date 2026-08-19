@@ -75,7 +75,7 @@ export function useLockScanner() {
         if (!hasSelection()) {
           Alert.alert(
             "Choose apps first",
-            "Open Settings and select at least one app, category, or website before locking."
+            "Open the Settings tab and select at least one app, category, or website before locking."
           );
           return;
         }

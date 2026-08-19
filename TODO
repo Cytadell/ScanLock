@@ -43,3 +43,12 @@ Compliance TODOS:
         - Add a message in the scanner saying if the user hasn't printed their QR code they need to do that (If curr unlocked)
         - Make a note in scan to unlock that asks users if they lost the qr code they can use emergency unlock in settings tab (If curr locked)
         - Actually go over all the messaging and edit it
+
+Text to change:
+- Update home page sub-message "Scan a QR code..."
+- Remove Home page sub-message "changes only happen after..."
+- Change all of help screen
+- Remove capitalization on Choose Activities message
+- Maybe don't allow category select but order it based on usage(?)
+- Go over intro page again and edit
+- Look through error messaging

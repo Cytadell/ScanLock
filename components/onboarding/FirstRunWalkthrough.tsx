@@ -1,4 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { File, Paths } from "expo-file-system";
+import * as Sharing from "expo-sharing";
 import { useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
@@ -12,12 +14,14 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import QRCode from "react-native-qrcode-svg";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { captureRef } from "react-native-view-shot";
 
+import { QrKeyCard } from "@/components/qr/QrKeyCard";
+import { useReduceMotion } from "@/hooks/use-reduce-motion";
 import { requestAuthorization, selectApps } from "@/services/appBlocker";
 import { getOrCreateQrPayload } from "@/services/qrCode";
-import { useReduceMotion } from "@/hooks/use-reduce-motion";
 
 type WalkthroughProps = {
   onComplete: () => Promise<void>;
@@ -30,6 +34,8 @@ export function FirstRunWalkthrough({ onComplete }: WalkthroughProps) {
   const [qrPayload, setQrPayload] = useState<string | null>(null);
   const [isChoosingApps, setIsChoosingApps] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [isSharingQr, setIsSharingQr] = useState(false);
+  const qrCardRef = useRef<View>(null);
   const stepHeadingRef = useRef<Text>(null);
   const reduceMotion = useReduceMotion();
   const { width } = useWindowDimensions();
@@ -68,7 +74,7 @@ export function FirstRunWalkthrough({ onComplete }: WalkthroughProps) {
       await selectApps();
     } catch (error) {
       console.error("Could not open app selector:", error);
-      Alert.alert("App selector unavailable", "ScanLock could not open Apple's app selector.");
+      Alert.alert("App selector unavailable", "ScanLock could not open native app selector.");
     } finally {
       setIsChoosingApps(false);
     }
@@ -82,6 +88,38 @@ export function FirstRunWalkthrough({ onComplete }: WalkthroughProps) {
       console.error("Could not complete onboarding:", error);
       Alert.alert("Could not finish setup", "Please try again.");
       setIsCompleting(false);
+    }
+  }
+
+  async function shareQrCode() {
+    if (!qrCardRef.current || qrPayload === null) return;
+
+    try {
+      setIsSharingQr(true);
+      const sharingAvailable = await Sharing.isAvailableAsync();
+
+      if (!sharingAvailable) {
+        Alert.alert("Sharing unavailable", "This device cannot share files.");
+        return;
+      }
+
+      const captureUri = await captureRef(qrCardRef, { format: "png", quality: 1 });
+      const capturedImage = new File(captureUri);
+      const sharedImage = new File(Paths.cache, "your_scanlock.png");
+
+      if (sharedImage.exists) sharedImage.delete();
+      capturedImage.copy(sharedImage);
+
+      await Sharing.shareAsync(sharedImage.uri, {
+        mimeType: "image/png",
+        dialogTitle: "Share QR Code",
+        UTI: "public.png",
+      });
+    } catch (error) {
+      console.error("Could not share onboarding QR code:", error);
+      Alert.alert("Error", "Could not share the QR code.");
+    } finally {
+      setIsSharingQr(false);
     }
   }
 
@@ -143,9 +181,12 @@ export function FirstRunWalkthrough({ onComplete }: WalkthroughProps) {
           <ScrollView
             style={styles.contentScroll}
             contentContainerStyle={styles.content}
+            alwaysBounceVertical={false}
+            bounces={false}
+            overScrollMode="never"
             showsVerticalScrollIndicator={false}
           >
-            {renderStep(step, qrPayload, isChoosingApps, chooseApps, stepHeadingRef)}
+            {renderStep(step, qrPayload, isChoosingApps, isSharingQr, chooseApps, shareQrCode, qrCardRef, stepHeadingRef)}
           </ScrollView>
 
           <View style={styles.actions}>
@@ -187,7 +228,10 @@ function renderStep(
   step: number,
   qrPayload: string | null,
   isChoosingApps: boolean,
+  isSharingQr: boolean,
   chooseApps: () => Promise<void>,
+  shareQrCode: () => Promise<void>,
+  qrCardRef: React.RefObject<View | null>,
   headingRef: React.RefObject<Text | null>
 ) {
   if (step === 0) {
@@ -196,7 +240,7 @@ function renderStep(
         <View style={styles.heroIcon}><MaterialIcons name="shield" size={43} color="#7057E8" /></View>
         <Text style={styles.eyebrow}>WELCOME TO SCANLOCK</Text>
         <Text ref={headingRef} accessibilityRole="header" style={styles.title}>Put some distance between you and distraction.</Text>
-        <Text style={styles.body}>ScanLock creates a QR code that acts as a physical key for the apps you choose. Scan it to lock them, and scan it again when you are ready to unlock them.</Text>
+        <Text style={styles.body}>ScanLock creates a printable QR code that acts as a physical key for the apps you choose. Scan it to lock them, and scan it again when you are ready to unlock them.</Text>
       </View>
     );
   }
@@ -205,8 +249,8 @@ function renderStep(
     return (
       <View>
         <Text style={styles.eyebrow}>CHOOSE APPS</Text>
-        <Text ref={headingRef} accessibilityRole="header" style={styles.title}>Which apps should ScanLock control?</Text>
-        <Text style={styles.body}>Your iPhone&apos;s built-in selector lets you privately choose apps, categories, and websites.</Text>
+        <Text ref={headingRef} accessibilityRole="header" style={styles.title}>Which apps should ScanLock restrict?</Text>
+        <Text style={styles.body}>Select the apps that distract you the most and get your time back. </Text>
         <Pressable
           accessibilityRole="button"
           accessibilityState={{ disabled: isChoosingApps, busy: isChoosingApps }}
@@ -216,12 +260,11 @@ function renderStep(
         >
           <View style={styles.pickerIcon}><MaterialIcons name="apps" size={25} color="#7057E8" /></View>
           <View style={styles.pickerCopy}>
-            <Text style={styles.pickerTitle}>Apps &amp; websites</Text>
-            <Text style={styles.pickerHint}>Open Apple&apos;s app selector</Text>
+            <Text style={styles.pickerTitle}>Select Apps</Text>
           </View>
           {isChoosingApps ? <ActivityIndicator color="#7057E8" /> : <MaterialIcons name="chevron-right" size={25} color="#7057E8" />}
         </Pressable>
-        <Note icon="settings" text="You can change this selection later in Settings." />
+        <Note icon="settings" text="You can change this selection later in the Settings tab." />
       </View>
     );
   }
@@ -231,11 +274,28 @@ function renderStep(
       <View>
         <Text style={styles.eyebrow}>CREATE YOUR KEY</Text>
         <Text ref={headingRef} accessibilityRole="header" style={styles.title}>Your ScanLock QR code.</Text>
-        <Text style={styles.body}>This unique code controls the apps you selected. Use the same code to lock and unlock them.</Text>
+        <Text style={styles.body}>This code controls the apps you selected. Use the same code to lock and unlock them.</Text>
         <View accessible accessibilityLabel={qrPayload ? "Your ScanLock QR key" : "Generating your ScanLock QR key"} style={styles.qrContainer}>
-          {qrPayload ? <QRCode value={qrPayload} size={190} color="#201C2B" backgroundColor="#FFFFFF" /> : <ActivityIndicator accessibilityLabel="Generating your ScanLock QR key" size="large" color="#7057E8" />}
+          {qrPayload ? <QRCode value={qrPayload} size={165} color="#201C2B" backgroundColor="#FFFFFF" /> : <ActivityIndicator accessibilityLabel="Generating your ScanLock QR key" size="large" color="#7057E8" />}
         </View>
-        <Note icon="download" text="You can save, share, or print this QR code later from the Get Lock tab." />
+        {qrPayload && (
+          <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.exportCardContainer}>
+            <QrKeyCard ref={qrCardRef} qrPayload={qrPayload} width={310} qrSize={220} />
+          </View>
+        )}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Print or Share QR code"
+          accessibilityState={{ disabled: qrPayload === null, busy: isSharingQr }}
+          disabled={qrPayload === null || isSharingQr}
+          onPress={shareQrCode}
+          style={({ pressed }) => [styles.shareButton, (qrPayload === null || isSharingQr) && styles.shareButtonDisabled, pressed && styles.pressed]}
+        >
+          {isSharingQr ? <ActivityIndicator color="#FFFFFF" /> : <MaterialIcons name="ios-share" size={21} color="#FFFFFF" />}
+          <Text style={styles.shareButtonText}>Print or Share</Text>
+          <MaterialIcons name="arrow-forward" size={19} color="#FFFFFF" />
+        </Pressable>
+        <Note icon="download" text="You can also print or share this QR code later from the Get Lock tab." />
       </View>
     );
   }
@@ -244,7 +304,7 @@ function renderStep(
     <View>
       <Text style={styles.eyebrow}>HOW SCANNING WORKS</Text>
       <Text ref={headingRef} accessibilityRole="header" style={styles.title}>Your QR code becomes the key.</Text>
-      <Text style={styles.body}>Keep it somewhere intentional—across the room, by the door, or anywhere that creates the right amount of friction.</Text>
+      <Text style={styles.body}>Keep it somewhere intentional—across the room, by the door, or anywhere that creates distance between you and distraction.</Text>
       <View style={styles.mechanismRow}>
         <Mechanism icon="qr-code-scanner" title="Scan" text="Open ScanLock and point the camera at your code." />
         <Mechanism icon="lock" title="Lock" text="Your selected apps become unavailable." />
@@ -255,7 +315,7 @@ function renderStep(
 }
 
 function Note({ icon, text }: { icon: keyof typeof MaterialIcons.glyphMap; text: string }) {
-  return <View style={styles.note}><MaterialIcons name={icon} size={17} color="#888397" /><Text style={styles.noteText}>{text}</Text></View>;
+  return <View style={styles.note}><MaterialIcons name={icon} size={19} color="#625A70" /><Text style={styles.noteText}>{text}</Text></View>;
 }
 
 function Mechanism({ icon, title, text }: { icon: keyof typeof MaterialIcons.glyphMap; title: string; text: string }) {
@@ -263,7 +323,7 @@ function Mechanism({ icon, title, text }: { icon: keyof typeof MaterialIcons.gly
 }
 
 function stepHint(step: number) {
-  return ["How ScanLock works", "Use Apple's selector", "Make your key", "Lock and unlock"][step];
+  return ["How ScanLock works", "Use App selector", "Make your key", "Lock and unlock"][step];
 }
 
 const styles = StyleSheet.create({
@@ -302,8 +362,12 @@ const styles = StyleSheet.create({
   pickerTitle: { color: "#201C2B", fontSize: 16, fontWeight: "800" },
   pickerHint: { color: "#5F596B", fontSize: 12, marginTop: 3 },
   note: { flexDirection: "row", alignItems: "flex-start", gap: 8, marginTop: 17 },
-  noteText: { flex: 1, color: "#625D6F", fontSize: 12, lineHeight: 18 },
-  qrContainer: { width: 222, height: 222, alignSelf: "center", marginTop: 25, borderRadius: 24, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E9E6F0", alignItems: "center", justifyContent: "center" },
+  noteText: { flex: 1, color: "#4F485A", fontSize: 14, lineHeight: 20, fontWeight: "600" },
+  qrContainer: { width: 195, height: 195, alignSelf: "center", marginTop: 16, borderRadius: 21, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E9E6F0", alignItems: "center", justifyContent: "center" },
+  exportCardContainer: { position: "absolute", left: -1000, top: 0 },
+  shareButton: { width: "100%", maxWidth: 330, minHeight: 48, alignSelf: "center", marginTop: 12, borderRadius: 15, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: "#7057E8", flexDirection: "row", alignItems: "center", justifyContent: "space-between", shadowColor: "#7057E8", shadowOpacity: 0.24, shadowRadius: 12, shadowOffset: { width: 0, height: 7 }, elevation: 5 },
+  shareButtonDisabled: { opacity: 0.55 },
+  shareButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
   mechanismRow: { flexDirection: "row", flexWrap: "wrap", gap: 14, marginTop: 30 },
   mechanism: { flexGrow: 1, flexBasis: 155, borderTopWidth: 1, borderTopColor: "#DCD8E6", paddingTop: 16 },
   mechanismTitle: { color: "#201C2B", fontSize: 15, fontWeight: "800", marginTop: 10 },

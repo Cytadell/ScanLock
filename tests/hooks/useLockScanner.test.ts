@@ -117,7 +117,7 @@ describe("useLockScanner", () => {
 
     expect(alert).toHaveBeenCalledWith(
       "Choose apps first",
-      "Open Settings and select at least one app, category, or website before locking."
+      "Open the Settings tab and select at least one app, category, or website before locking."
     );
     expect(result.current.isOpen).toBe(false);
     expect(mockIsAuthorized).not.toHaveBeenCalled();
