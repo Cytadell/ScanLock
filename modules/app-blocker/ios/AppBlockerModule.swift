@@ -6,26 +6,12 @@ public final class AppBlockerModule: Module {
         Name("AppBlocker")
 
         AsyncFunction("requestAuthorization") {
-            do {
-                try await AuthorizationCenter.shared
-                    .requestAuthorization(for: .individual)
-                return true
-            } catch {
-                return false
-            }
-        }.runOnQueue(.main)
+            await requestFamilyControlsAuthorization()
+        }
 
         AsyncFunction("selectApps") {
-            guard AuthorizationCenter.shared.authorizationStatus == .approved else {
-                throw AppBlockerModuleError.notAuthorized
-            }
-
-            guard try AppBlocker.shared.getLocked() == false else {
-                throw AppBlockerError.selectionLocked
-            }
-
-            return try await AppPickerPresenter.shared.present()
-        }.runOnQueue(.main)
+            try await presentAppPicker()
+        }
 
         Function("isAuthorized") {
             AuthorizationCenter.shared.authorizationStatus == .approved
@@ -51,6 +37,30 @@ public final class AppBlockerModule: Module {
             try AppBlocker.shared.clearSelection()
         }
     }
+}
+
+@MainActor
+private func requestFamilyControlsAuthorization() async -> Bool {
+    do {
+        try await AuthorizationCenter.shared
+            .requestAuthorization(for: .individual)
+        return true
+    } catch {
+        return false
+    }
+}
+
+@MainActor
+private func presentAppPicker() async throws -> [String: Int] {
+    guard AuthorizationCenter.shared.authorizationStatus == .approved else {
+        throw AppBlockerModuleError.notAuthorized
+    }
+
+    guard try AppBlocker.shared.getLocked() == false else {
+        throw AppBlockerError.selectionLocked
+    }
+
+    return try await AppPickerPresenter.shared.present()
 }
 
 enum AppBlockerModuleError: LocalizedError {
