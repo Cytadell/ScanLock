@@ -1,0 +1,40 @@
+name: Test and submit iOS production
+
+jobs:
+  jest:
+    name: Jest tests
+    runs_on: linux-medium
+    steps:
+      - uses: eas/checkout
+      - uses: eas/install_node_modules
+      - run: npm run test:ci
+
+  ios_unit_tests:
+    name: iOS native unit tests
+    needs: [jest]
+    runs_on: macos-medium
+    steps:
+      - uses: eas/checkout
+      - uses: eas/install_node_modules
+      - run: npx expo prebuild --clean --platform ios --no-install
+      - run: cd ios && pod install
+      - run: npm run test:ios
+
+  build_ios:
+    name: Build production iOS
+    needs: [ios_unit_tests]
+    type: build
+    params:
+      platform: ios
+      profile: production
+
+  testflight:
+    name: Upload to TestFlight
+    needs: [build_ios]
+    type: testflight
+    params:
+      build_id: ${{ needs.build_ios.outputs.build_id }}
+      changelog: |
+        Release candidate for physical-device smoke testing.
+        Verify onboarding, Family Controls authorization, QR sharing,
+        locking, unlocking, relaunch recovery, and Emergency Unlock.
