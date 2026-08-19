@@ -13,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import QRCode from "react-native-qrcode-svg";
 
 export default function GetLockScreen() {
-  const { qrPayload, qrCardRef, shareQrCode, requestQrKeyReplacement } = useGetLock();
+  const { qrPayload, qrCardRef, shareQrCode } = useGetLock();
   const { width } = useWindowDimensions();
   const qrCardWidth = Math.min(310, Math.max(260, width - 48));
   const qrSize = Math.min(220, qrCardWidth - 68);
@@ -28,7 +28,13 @@ export default function GetLockScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        alwaysBounceVertical={false}
+        bounces={false}
+        contentContainerStyle={styles.container}
+        overScrollMode="never"
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
           <View style={styles.iconBadge}>
             <MaterialIcons name="qr-code-2" size={24} color="#7057E8" />
@@ -83,16 +89,6 @@ export default function GetLockScreen() {
           <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
         </Pressable>
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Replace QR key"
-          accessibilityHint="Invalidates the current QR code and creates a new one"
-          onPress={requestQrKeyReplacement}
-          style={({ pressed }) => [styles.replaceButton, pressed && styles.replaceButtonPressed]}
-        >
-          <MaterialIcons name="refresh" size={17} color="#777181" />
-          <Text style={styles.replaceButtonText}>Replace QR key</Text>
-        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -121,7 +117,4 @@ const styles = StyleSheet.create({
   shareButton: { minHeight: 58, borderRadius: 18, paddingHorizontal: 20, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#7057E8", shadowColor: "#7057E8", shadowOpacity: 0.3, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
   shareButtonPressed: { opacity: 0.82 },
   shareButtonText: { color: "#FFFFFF", fontSize: 17, fontWeight: "700" },
-  replaceButton: { minHeight: 44, alignSelf: "center", flexDirection: "row", alignItems: "center", gap: 6, marginTop: 13, paddingHorizontal: 12, paddingVertical: 10 },
-  replaceButtonPressed: { opacity: 0.6 },
-  replaceButtonText: { color: "#5F596B", fontSize: 13, fontWeight: "600" },
 });

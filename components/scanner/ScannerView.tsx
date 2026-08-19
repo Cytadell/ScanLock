@@ -78,6 +78,9 @@ export function ScannerView({
   const successColor = locked ? "#B83F31" : "#08785A";
   const frameColor = status === "success" ? successColor : ["error", "invalid-code"].includes(status) ? "#FF6B6B" : "#FFFFFF";
   const message = getStatusMessage(status, locked, errorMessage);
+  const scannerGuidance = locked
+    ? "Lost your QR code? Use Emergency Unlock in the Settings tab."
+    : "Haven’t printed your QR code? Print or save it from the Get Lock tab before locking your apps.";
 
   useEffect(() => {
     const announcement = getStatusAnnouncement(status, locked, errorMessage);
@@ -179,6 +182,12 @@ export function ScannerView({
             <View style={styles.messageBlock}>
               <Text accessibilityRole="header" accessibilityLiveRegion="polite" style={styles.messageTitle}>{message.title}</Text>
               <Text style={styles.messageText}>{message.detail}</Text>
+              {status === "scanning" && (
+                <View style={styles.guidanceNote}>
+                  <MaterialIcons name={locked ? "emergency" : "print"} size={18} color="#D8CEFF" />
+                  <Text style={styles.guidanceText}>{scannerGuidance}</Text>
+                </View>
+              )}
               {(status === "error" || status === "invalid-code") && (
                 <Pressable accessibilityRole="button" style={styles.retryButton} onPress={onRetry}>
                   <MaterialIcons name="refresh" size={19} color="#18151F" />
@@ -217,7 +226,9 @@ function getStatusAnnouncement(status: ScanStatus, isLocked: boolean, errorMessa
     case "requesting-permission":
       return "Getting the camera ready. You may be asked to allow camera access.";
     case "scanning":
-      return "Camera ready. Position your ScanLock QR code in the frame.";
+      return isLocked
+        ? "Camera ready. Position your ScanLock QR code in the frame. Lost your QR code? Use Emergency Unlock in the Settings tab."
+        : "Camera ready. Position your ScanLock QR code in the frame. Haven’t printed your QR code? Print or save it from the Get Lock tab before locking your apps.";
     case "verifying":
       return "QR code detected. Verifying.";
     case "success":
@@ -273,6 +284,8 @@ const styles = StyleSheet.create({
   messageBlock: { minHeight: 116, alignItems: "center", marginTop: 28 },
   messageTitle: { color: "#FFFFFF", fontSize: 21, fontWeight: "700", textAlign: "center" },
   messageText: { color: "rgba(255,255,255,0.82)", fontSize: 14, lineHeight: 21, textAlign: "center", marginTop: 7, maxWidth: 300 },
+  guidanceNote: { maxWidth: 340, flexDirection: "row", alignItems: "center", gap: 9, marginTop: 16, paddingHorizontal: 14, paddingVertical: 11, borderRadius: 14, backgroundColor: "rgba(18,15,23,0.72)", borderWidth: 1, borderColor: "rgba(216,206,255,0.24)" },
+  guidanceText: { flex: 1, color: "rgba(255,255,255,0.9)", fontSize: 13, lineHeight: 19 },
   retryButton: { minHeight: 48, flexDirection: "row", alignItems: "center", gap: 7, backgroundColor: "#FFFFFF", paddingHorizontal: 18, paddingVertical: 11, borderRadius: 99, marginTop: 16 },
   retryText: { color: "#18151F", fontSize: 14, fontWeight: "700" },
   bottomBar: { height: 108, alignItems: "center", justifyContent: "flex-start" },

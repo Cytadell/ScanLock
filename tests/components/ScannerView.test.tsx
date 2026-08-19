@@ -47,6 +47,26 @@ describe("ScannerView accessibility", () => {
     );
   });
 
+  it("shows printing guidance while scanning to lock", async () => {
+    await render(<ScannerView {...defaultProps} status="scanning" />);
+
+    expect(screen.getByText(/Haven’t printed your QR code/)).toBeOnTheScreen();
+    expect(screen.queryByText(/Lost your QR code/)).not.toBeOnTheScreen();
+    expect(AccessibilityInfo.announceForAccessibility).toHaveBeenCalledWith(
+      expect.stringContaining("Print or save it from the Get Lock tab")
+    );
+  });
+
+  it("shows Emergency Unlock guidance while scanning to unlock", async () => {
+    await render(<ScannerView {...defaultProps} status="scanning" locked />);
+
+    expect(screen.getByText(/Lost your QR code/)).toBeOnTheScreen();
+    expect(screen.queryByText(/Haven’t printed your QR code/)).not.toBeOnTheScreen();
+    expect(AccessibilityInfo.announceForAccessibility).toHaveBeenCalledWith(
+      expect.stringContaining("Use Emergency Unlock in the Settings tab")
+    );
+  });
+
   it("announces success and exposes retry after an invalid code", async () => {
     const view = await render(<ScannerView {...defaultProps} status="success" locked />);
     expect(AccessibilityInfo.announceForAccessibility).toHaveBeenCalledWith("Apps locked.");

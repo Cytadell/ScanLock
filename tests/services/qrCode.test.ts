@@ -2,10 +2,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Crypto from "expo-crypto";
 
 import {
-  generateUniversalQrPayload,
   getOrCreateQrPayload,
   parseQrPayload,
-  rotateQrKey,
   validateQrPayload,
 } from "@/services/qrCode";
 
@@ -33,25 +31,40 @@ describe("QR code service", () => {
     jest.clearAllMocks();
     mockGetItem.mockResolvedValue(null);
     mockSetItem.mockResolvedValue(undefined);
-    mockRandomUUID.mockReturnValue("generated-key");
+    mockRandomUUID.mockReturnValue("123e4567-e89b-42d3-a456-426614174000");
   });
 
   describe("parseQrPayload", () => {
-    it("parses a supported ScanLock payload", () => {
-      expect(
-        parseQrPayload(
-          JSON.stringify({ type: "scanlock-key", version: 1, keyId: "device-key" })
-        )
-      ).toEqual({ type: "scanlock-key", version: 1, keyId: "device-key" });
+    it("parses a compact ScanLock payload", () => {
+      expect(parseQrPayload("SL1:123E4567E89B42D3")).toEqual({
+        version: 1,
+        keyId: "123e4567e89b42d3",
+      });
+    });
+
+    it("continues to parse previously printed JSON payloads", () => {
+      const value = JSON.stringify({
+        type: "scanlock-key",
+        version: 1,
+        keyId: "123e4567-e89b-42d3-a456-426614174000",
+      });
+
+      expect(parseQrPayload(value)).toEqual({
+        version: 1,
+        keyId: "123e4567e89b42d3a456426614174000",
+      });
     });
 
     it.each([
       ["malformed JSON", "not-json"],
+      ["an incomplete compact code", "SL1:1234"],
+      ["a compact code with invalid characters", "SL1:ZZZE4567E89B42D3"],
+      ["a compact code with trailing content", "SL1:123E4567E89B42D3:anything"],
       ["a primitive", JSON.stringify("scanlock-key")],
-      ["the wrong type", JSON.stringify({ type: "other", version: 1, keyId: "key" })],
-      ["the wrong version", JSON.stringify({ type: "scanlock-key", version: 2, keyId: "key" })],
+      ["the wrong type", JSON.stringify({ type: "other", version: 1, keyId: "123e4567-e89b-42d3-a456-426614174000" })],
+      ["the wrong version", JSON.stringify({ type: "scanlock-key", version: 2, keyId: "123e4567-e89b-42d3-a456-426614174000" })],
       ["a missing key", JSON.stringify({ type: "scanlock-key", version: 1 })],
-      ["an empty key", JSON.stringify({ type: "scanlock-key", version: 1, keyId: "" })],
+      ["a non-UUID legacy key", JSON.stringify({ type: "scanlock-key", version: 1, keyId: "device-key" })],
     ])("rejects %s", (_description, value) => {
       expect(parseQrPayload(value)).toBeNull();
     });
@@ -59,10 +72,10 @@ describe("QR code service", () => {
 
   describe("getOrCreateQrPayload", () => {
     it("reuses a persisted key", async () => {
-      mockGetItem.mockResolvedValue("existing-key");
+      mockGetItem.mockResolvedValue("123e4567-e89b-42d3-a456-426614174000");
 
       await expect(getOrCreateQrPayload()).resolves.toBe(
-        JSON.stringify({ type: "scanlock-key", version: 1, keyId: "existing-key" })
+        "SL1:123E4567E89B42D3"
       );
       expect(mockRandomUUID).not.toHaveBeenCalled();
       expect(mockSetItem).not.toHaveBeenCalled();
@@ -70,9 +83,12 @@ describe("QR code service", () => {
 
     it("creates and persists a key when one does not exist", async () => {
       await expect(getOrCreateQrPayload()).resolves.toBe(
-        JSON.stringify({ type: "scanlock-key", version: 1, keyId: "generated-key" })
+        "SL1:123E4567E89B42D3"
       );
-      expect(mockSetItem).toHaveBeenCalledWith(QR_STORAGE_KEY, "generated-key");
+      expect(mockSetItem).toHaveBeenCalledWith(
+        QR_STORAGE_KEY,
+        "123E4567E89B42D3"
+      );
     });
 
     it("shares one key creation across concurrent callers", async () => {
@@ -85,22 +101,10 @@ describe("QR code service", () => {
   });
 
   describe("validateQrPayload", () => {
-    it("accepts the persisted device key", async () => {
-      mockGetItem.mockResolvedValue("device-key");
-      const payload = JSON.stringify({ type: "scanlock-key", version: 1, keyId: "device-key" });
-
-      await expect(validateQrPayload(payload)).resolves.toBe(true);
-    });
-
-    it("rejects a different device key", async () => {
-      mockGetItem.mockResolvedValue("device-key");
-      const payload = JSON.stringify({ type: "scanlock-key", version: 1, keyId: "other-key" });
-
-      await expect(validateQrPayload(payload)).resolves.toBe(false);
-    });
-
-    it("accepts the universal key without reading device storage", async () => {
-      await expect(validateQrPayload(generateUniversalQrPayload())).resolves.toBe(true);
+    it("accepts any well-formed ScanLock code without reading device storage", async () => {
+      await expect(
+        validateQrPayload("SL1:AAAAAAAAAAAAAAAA")
+      ).resolves.toBe(true);
       expect(mockGetItem).not.toHaveBeenCalled();
     });
 
@@ -110,12 +114,4 @@ describe("QR code service", () => {
     });
   });
 
-  it("rotates and persists a replacement key", async () => {
-    mockRandomUUID.mockReturnValue("replacement-key");
-
-    await expect(rotateQrKey()).resolves.toBe(
-      JSON.stringify({ type: "scanlock-key", version: 1, keyId: "replacement-key" })
-    );
-    expect(mockSetItem).toHaveBeenCalledWith(QR_STORAGE_KEY, "replacement-key");
-  });
 });

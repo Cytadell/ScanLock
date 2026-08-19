@@ -41,5 +41,5 @@ Compliance TODOS:
 - Prepare to test flight for ios
     - To Prepare do the following:
         - Add a message in the scanner saying if the user hasn't printed their QR code they need to do that (If curr unlocked)
-        - Actually go over all the messaging and edit it
         - Make a note in scan to unlock that asks users if they lost the qr code they can use emergency unlock in settings tab (If curr locked)
+        - Actually go over all the messaging and edit it

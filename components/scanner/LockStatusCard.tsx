@@ -60,7 +60,14 @@ export function LockStatusCard({ locked, lockElapsed, onScan }: Props) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.screenScroll} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        alwaysBounceVertical={false}
+        bounces={false}
+        contentContainerStyle={styles.container}
+        overScrollMode="never"
+        showsVerticalScrollIndicator={false}
+        style={styles.screenScroll}
+      >
         <View style={styles.headerRow}>
           <View style={styles.brandRow}>
             <View accessible={false} style={styles.brandMark}>

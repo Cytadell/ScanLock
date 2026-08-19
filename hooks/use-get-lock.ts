@@ -1,4 +1,5 @@
-import { getOrCreateQrPayload, rotateQrKey } from "@/services/qrCode";
+import { getOrCreateQrPayload } from "@/services/qrCode";
+import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { useEffect, useRef, useState } from "react";
 import { Alert, View } from "react-native";
@@ -34,14 +35,20 @@ export function useGetLock() {
         return;
       }
 
-      const uri = await captureRef(qrCardRef, {
+      const captureUri = await captureRef(qrCardRef, {
         format: "png",
         quality: 1,
       });
+      const capturedImage = new File(captureUri);
+      const sharedImage = new File(Paths.cache, "your_scanlock.png");
 
-      await Sharing.shareAsync(uri, {
+      if (sharedImage.exists) sharedImage.delete();
+      capturedImage.copy(sharedImage);
+
+      await Sharing.shareAsync(sharedImage.uri, {
         mimeType: "image/png",
         dialogTitle: "Share QR Code",
+        UTI: "public.png",
       });
     } catch (error) {
       console.error("Could not share QR code:", error);
@@ -49,35 +56,9 @@ export function useGetLock() {
     }
   }
 
-  function requestQrKeyReplacement() {
-    Alert.alert(
-      "Replace QR key?",
-      "Your current printed and shared ScanLock codes will stop working.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Replace key",
-          style: "destructive",
-          onPress: replaceQrKey,
-        },
-      ]
-    );
-  }
-
-  async function replaceQrKey() {
-    try {
-      setQrPayload(await rotateQrKey());
-      Alert.alert("QR key replaced", "Print or share your new ScanLock code.");
-    } catch (error) {
-      console.error("Could not replace QR key:", error);
-      Alert.alert("Error", "Could not replace your QR key.");
-    }
-  }
-
   return {
     qrPayload,
     qrCardRef,
     shareQrCode,
-    requestQrKeyReplacement,
   };
 }

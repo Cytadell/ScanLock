@@ -8,7 +8,6 @@ Test build information
 [ ] Record iPhone/iPad model:
 [ ] Record build profile (development/preview/production):
 [ ] Confirm this is a native development or release build, not Expo Go.
-[ ] Confirm whether the universal debug QR feature is enabled or disabled.
 
 Run the critical tests on at least:
 [ ] The oldest supported iOS version (currently iOS 16).
@@ -76,7 +75,7 @@ Run the critical tests on at least:
 [ ] Confirm ScanLock itself is not shielded and remains available for unlocking.
 [ ] Confirm the UI reports locked only after the native shield state is verified.
 [ ] Scan an invalid QR code while unlocked and confirm nothing is locked.
-[ ] Scan another user's ScanLock QR code and confirm nothing is locked.
+[ ] Scan a ScanLock QR code created by another installation and confirm locking succeeds.
 [ ] Scan malformed, empty, ordinary website, and non-ScanLock QR codes.
 [ ] Scan the valid QR repeatedly/rapidly and confirm only one lock transition occurs.
 [ ] Background the app immediately after scanning and confirm the final state is consistent.
@@ -93,8 +92,8 @@ Run the critical tests on at least:
 [ ] Scan the correct QR while locked and confirm all ScanLock shields are removed.
 [ ] With no saved app selection, confirm unlocking remains available when shields exist.
 [ ] Confirm the no-selection lock guard never blocks an unlock attempt.
-[ ] Scan an invalid or old QR while locked and confirm shields remain active.
-[ ] Scan another user's QR while locked and confirm shields remain active.
+[ ] Scan an invalid or unsupported-version QR while locked and confirm shields remain active.
+[ ] Scan a ScanLock QR code created by another installation and confirm unlocking succeeds.
 [ ] Scan the valid QR repeatedly/rapidly and confirm only one unlock transition occurs.
 [ ] Background the app immediately after requesting unlock and confirm the final state is consistent.
 [ ] Force-quit immediately after requesting unlock and confirm recovery does not leave stale shields.
@@ -126,20 +125,16 @@ Run the critical tests on at least:
 [ ] Install an upgrade over an unlocked build and confirm configuration remains valid.
 
 
-7. QR key lifecycle
--------------------
+7. QR compatibility and lifecycle
+---------------------------------
 [ ] Generate a QR key and verify the displayed QR scans successfully.
 [ ] Share/save the QR image and verify the exported image scans successfully.
 [ ] Print the QR at expected sizes and test it in normal and poor lighting.
 [ ] Test scanning from another screen at low and high brightness.
 [ ] Force-quit and reboot, then confirm the existing QR remains valid.
-[ ] Replace/rotate the QR key while unlocked and confirm the old QR stops working.
-[ ] Confirm the new QR works for both locking and unlocking.
-[ ] Attempt to rotate the QR key while locked and confirm the app does not strand the user without a working unlock key.
-[ ] Cancel key-replacement confirmation and confirm the existing key remains unchanged.
-[ ] Force-quit during key replacement and confirm either the old or new key remains consistently usable.
-[ ] Confirm the universal debug QR works only in builds where it is explicitly enabled.
-[ ] Confirm the universal debug QR is rejected in production builds.
+[ ] Confirm a compact SL1 ScanLock code from another installation works for both locking and unlocking.
+[ ] Confirm a previously printed v1 JSON ScanLock code still works after upgrading.
+[ ] Confirm codes with an unknown version, invalid identifier, extra content, or an unrelated payload are rejected.
 
 
 8. Camera permission and scanning UI
@@ -188,7 +183,7 @@ Run the critical tests on at least:
 [ ] Install the exact TestFlight/release candidate build on a clean device.
 [ ] Confirm the Family Controls entitlement exists in the signed production build.
 [ ] Confirm camera and Screen Time permission descriptions are present and correct.
-[ ] Confirm the universal debug QR is disabled.
+[ ] Confirm compact and legacy ScanLock codes work and unrelated QR codes are rejected.
 [ ] Complete onboarding, select apps, create/share a key, lock, force-quit, reopen, and unlock.
 [ ] Reboot while locked and successfully unlock afterward.
 [ ] Confirm app icon, launch screen, name, version, support links, and privacy links are correct.

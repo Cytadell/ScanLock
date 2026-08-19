@@ -20,12 +20,12 @@ The goal is not to make distracting apps permanently inaccessible. It is to add 
 ## How it works
 
 1. Grant the platform's required authorization and choose the apps you want ScanLock to protect.
-2. ScanLock generates a random local identifier and encodes it in a printable QR key.
+2. ScanLock generates a compact, versioned QR code with a random print identifier.
 3. Print or share the key and place it somewhere away from your phone.
-4. Scan the matching QR key to lock the selected apps.
-5. Scan the same key again when you intentionally want to unlock them.
+4. Scan any valid ScanLock QR key to lock the selected apps.
+5. Scan any valid ScanLock key again when you intentionally want to unlock them.
 
-Invalid, malformed, replaced, or unrelated QR codes do not change the lock state. The QR key can be rotated while the app is unlocked, and an explicit emergency-unlock flow is available if the physical key cannot be reached.
+ScanLock keys are interchangeable across installations, which allows people in the same household to share printed keys. Malformed, unsupported, and unrelated QR codes do not change the lock state, and an explicit emergency-unlock flow is available if a physical key cannot be reached.
 
 ## Screenshots
 
@@ -184,8 +184,8 @@ Android native behavior has a JUnit decision test and a separate [Android manual
 Build profiles are defined in `eas.json`:
 
 - `development`: internal development-client build
-- `preview`: internal build with the universal debug QR enabled
-- `production`: store-oriented build with the universal debug QR disabled
+- `preview`: internal distribution build
+- `production`: store-oriented build
 
 iOS builds:
 
