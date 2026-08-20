@@ -227,13 +227,13 @@ The manually triggered gated iOS workflow runs Jest on Linux, runs XCTest on an 
 npx eas-cli@latest workflow:run .eas/workflows/test-and-build.yml
 ```
 
-A separate release-candidate workflow runs the same Jest and XCTest gates, creates a store-signed production build, and uploads that exact build to TestFlight:
+A separate release-candidate workflow runs the same Jest and XCTest gates and creates a downloadable, store-signed production build:
 
 ```sh
-npx eas-cli@latest workflow:run .eas/workflows/test-and-submit-production.yml
+npx eas-cli@latest workflow:run .eas/workflows/test-and-build-production.yml
 ```
 
-Use the production workflow when the current commit is ready for physical-device smoke testing through internal TestFlight. After App Store Connect finishes processing the upload, assign the build to an internal testing group (or enable automatic internal distribution), install it through TestFlight, and complete the iOS manual-test checklist against that exact build. Promoting the same successful build to external testing or App Review does not require rebuilding it.
+Use the production workflow when the current commit is ready for physical-device smoke testing. Download the successful IPA from EAS, upload it to App Store Connect manually, assign it to an internal TestFlight group, and complete the iOS manual-test checklist against that exact build. Promoting the same successful build to external testing or App Review does not require rebuilding it.
 
 Pushes to `main` do not automatically consume an EAS build. The workflow runs only when explicitly requested.
 

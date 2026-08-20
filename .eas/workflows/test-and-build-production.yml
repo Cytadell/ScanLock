@@ -1,4 +1,4 @@
-name: Test and submit iOS production
+name: Test and build iOS production
 
 jobs:
   jest:
@@ -27,14 +27,3 @@ jobs:
     params:
       platform: ios
       profile: production
-
-  testflight:
-    name: Upload to TestFlight
-    needs: [build_ios]
-    type: testflight
-    params:
-      build_id: ${{ needs.build_ios.outputs.build_id }}
-      changelog: |
-        Release candidate for physical-device smoke testing.
-        Verify onboarding, Family Controls authorization, QR sharing,
-        locking, unlocking, relaunch recovery, and Emergency Unlock.
