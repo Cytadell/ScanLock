@@ -1,11 +1,12 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
   ActivityIndicator,
   Alert,
+  Animated,
   findNodeHandle,
   Pressable,
   ScrollView,
@@ -19,27 +20,43 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 
 import { QrKeyCard } from "@/components/qr/QrKeyCard";
+import { PadlockQrCodeIcon } from "@/components/icons/PadlockQrCodeIcon";
 import { useReduceMotion } from "@/hooks/use-reduce-motion";
 import { requestAuthorization, selectApps } from "@/services/appBlocker";
 import { getOrCreateQrPayload } from "@/services/qrCode";
 
 type WalkthroughProps = {
   onComplete: () => Promise<void>;
+  readingDelayMs?: number;
+  postWritingDelayMs?: number;
 };
 
-const STEPS = ["Welcome", "Choose apps", "Create QR", "How to scan"];
+const STEPS = ["Welcome", "Choose apps", "Create QR", "How to scan", "Emergency unlock"];
+const MIN_STEP_READING_TIME = 2200;
+const TITLE_REVEAL_TIME = 420;
+const TYPE_CHARACTER_TIME = 36;
+const POST_WRITING_DELAY = 1500;
 
-export function FirstRunWalkthrough({ onComplete }: WalkthroughProps) {
+export function FirstRunWalkthrough({ onComplete, readingDelayMs = MIN_STEP_READING_TIME, postWritingDelayMs = POST_WRITING_DELAY }: WalkthroughProps) {
   const [step, setStep] = useState(0);
   const [qrPayload, setQrPayload] = useState<string | null>(null);
   const [isChoosingApps, setIsChoosingApps] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [isSharingQr, setIsSharingQr] = useState(false);
+  const [canContinue, setCanContinue] = useState(false);
+  const viewedSteps = useRef(new Set<number>());
   const qrCardRef = useRef<View>(null);
   const stepHeadingRef = useRef<Text>(null);
   const reduceMotion = useReduceMotion();
   const { width } = useWindowDimensions();
   const compact = width < 700;
+
+  useEffect(() => setCanContinue(viewedSteps.current.has(step)), [step]);
+
+  const markStepRead = useCallback(() => {
+    viewedSteps.current.add(step);
+    setCanContinue(true);
+  }, [step]);
 
   useEffect(() => {
     if (step !== 2 || qrPayload !== null) return;
@@ -137,7 +154,7 @@ export function FirstRunWalkthrough({ onComplete }: WalkthroughProps) {
         <View style={[styles.rail, compact && styles.railCompact]}>
           <View style={[styles.brand, compact && styles.brandCompact]}>
             <View accessible={false} style={styles.brandMark}>
-              <MaterialIcons name="qr-code-scanner" size={20} color="#FFFFFF" />
+              <PadlockQrCodeIcon height={23} color="#FFFFFF" />
             </View>
             <Text style={styles.brandText}>ScanLock</Text>
           </View>
@@ -186,7 +203,7 @@ export function FirstRunWalkthrough({ onComplete }: WalkthroughProps) {
             overScrollMode="never"
             showsVerticalScrollIndicator={false}
           >
-            {renderStep(step, qrPayload, isChoosingApps, isSharingQr, chooseApps, shareQrCode, qrCardRef, stepHeadingRef)}
+            {renderStep(step, qrPayload, isChoosingApps, isSharingQr, chooseApps, shareQrCode, qrCardRef, stepHeadingRef, viewedSteps.current.has(step), markStepRead, reduceMotion, readingDelayMs, postWritingDelayMs)}
           </ScrollView>
 
           <View style={styles.actions}>
@@ -203,16 +220,17 @@ export function FirstRunWalkthrough({ onComplete }: WalkthroughProps) {
 
             <Pressable
               accessibilityRole="button"
-              accessibilityState={{ disabled: isCompleting, busy: isCompleting }}
-              disabled={isCompleting}
+              accessibilityHint={canContinue ? undefined : "Available after this step has been revealed"}
+              accessibilityState={{ disabled: isCompleting || !canContinue, busy: isCompleting }}
+              disabled={isCompleting || !canContinue}
               onPress={goForward}
-              style={({ pressed }) => [styles.nextButton, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.nextButton, !canContinue && styles.nextButtonDisabled, pressed && canContinue && styles.pressed]}
             >
               {isCompleting ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <>
-                  <Text style={styles.nextText}>{step === STEPS.length - 1 ? "Finish setup" : "Continue"}</Text>
+                  <Text style={[styles.nextText, !canContinue && styles.nextTextDisabled]}>{canContinue ? (step === STEPS.length - 1 ? "Finish setup" : "Continue") : "Keep reading…"}</Text>
                   <MaterialIcons name={step === STEPS.length - 1 ? "check" : "arrow-forward"} size={20} color="#FFFFFF" />
                 </>
               )}
@@ -232,15 +250,19 @@ function renderStep(
   chooseApps: () => Promise<void>,
   shareQrCode: () => Promise<void>,
   qrCardRef: React.RefObject<View | null>,
-  headingRef: React.RefObject<Text | null>
+  headingRef: React.RefObject<Text | null>,
+  alreadyViewed: boolean,
+  onRevealComplete: () => void,
+  reduceMotion: boolean,
+  readingDelayMs: number,
+  postWritingDelayMs: number
 ) {
   if (step === 0) {
     return (
       <View>
         <View style={styles.heroIcon}><MaterialIcons name="shield" size={43} color="#7057E8" /></View>
         <Text style={styles.eyebrow}>WELCOME TO SCANLOCK</Text>
-        <Text ref={headingRef} accessibilityRole="header" style={styles.title}>Put some distance between you and distraction.</Text>
-        <Text style={styles.body}>ScanLock creates a printable QR code that acts as a physical key for the apps you choose. Scan it to lock them, and scan it again when you are ready to unlock them.</Text>
+        <StepCopy headingRef={headingRef} title="Put some distance between you and distraction." body="ScanLock creates a printable QR code that acts as a physical key for the apps you choose. Scan it to lock them, and scan it again when you are ready to unlock them." alreadyViewed={alreadyViewed} onComplete={onRevealComplete} reduceMotion={reduceMotion} readingDelayMs={readingDelayMs} postWritingDelayMs={postWritingDelayMs} />
       </View>
     );
   }
@@ -249,8 +271,7 @@ function renderStep(
     return (
       <View>
         <Text style={styles.eyebrow}>CHOOSE APPS</Text>
-        <Text ref={headingRef} accessibilityRole="header" style={styles.title}>Which apps should ScanLock restrict?</Text>
-        <Text style={styles.body}>Select the apps that distract you the most and get your time back. </Text>
+        <StepCopy headingRef={headingRef} title="Which apps should ScanLock restrict?" body="Select the apps that distract you the most and get your time back." alreadyViewed={alreadyViewed} onComplete={onRevealComplete} reduceMotion={reduceMotion} readingDelayMs={readingDelayMs} postWritingDelayMs={postWritingDelayMs} />
         <Pressable
           accessibilityRole="button"
           accessibilityState={{ disabled: isChoosingApps, busy: isChoosingApps }}
@@ -273,8 +294,7 @@ function renderStep(
     return (
       <View>
         <Text style={styles.eyebrow}>CREATE YOUR KEY</Text>
-        <Text ref={headingRef} accessibilityRole="header" style={styles.title}>Your ScanLock QR code.</Text>
-        <Text style={styles.body}>This code controls the apps you selected. Use the same code to lock and unlock them.</Text>
+        <StepCopy compact headingRef={headingRef} title="Your ScanLock QR code." body="This code controls the apps you selected. Use the same code to lock and unlock them." alreadyViewed={alreadyViewed} onComplete={onRevealComplete} reduceMotion={reduceMotion} readingDelayMs={readingDelayMs} postWritingDelayMs={postWritingDelayMs} />
         <View accessible accessibilityLabel={qrPayload ? "Your ScanLock QR key" : "Generating your ScanLock QR key"} style={styles.qrContainer}>
           {qrPayload ? <QRCode value={qrPayload} size={165} color="#201C2B" backgroundColor="#FFFFFF" /> : <ActivityIndicator accessibilityLabel="Generating your ScanLock QR key" size="large" color="#7057E8" />}
         </View>
@@ -300,17 +320,82 @@ function renderStep(
     );
   }
 
+  if (step === 3) {
+    return (
+      <View>
+        <Text style={styles.eyebrow}>HOW SCANNING WORKS</Text>
+        <StepCopy compact headingRef={headingRef} title="Your QR code becomes the key." body="Keep it somewhere intentional—across the room, by the door, or anywhere that creates distance between you and distraction." alreadyViewed={alreadyViewed} onComplete={onRevealComplete} reduceMotion={reduceMotion} readingDelayMs={readingDelayMs} postWritingDelayMs={postWritingDelayMs} />
+        <View style={styles.mechanismRow}>
+          <Mechanism icon="qr-code-scanner" title="Scan" text="Open ScanLock and point the camera at your code." />
+          <Mechanism icon="lock" title="Lock" text="Your selected apps become unavailable." />
+          <Mechanism icon="lock-open" title="Scan again" text="Return to the code when you want access back." />
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View>
-      <Text style={styles.eyebrow}>HOW SCANNING WORKS</Text>
-      <Text ref={headingRef} accessibilityRole="header" style={styles.title}>Your QR code becomes the key.</Text>
-      <Text style={styles.body}>Keep it somewhere intentional—across the room, by the door, or anywhere that creates distance between you and distraction.</Text>
-      <View style={styles.mechanismRow}>
-        <Mechanism icon="qr-code-scanner" title="Scan" text="Open ScanLock and point the camera at your code." />
-        <Mechanism icon="lock" title="Lock" text="Your selected apps become unavailable." />
-        <Mechanism icon="lock-open" title="Scan again" text="Return to the code when you want access back." />
-      </View>
+      <View style={styles.emergencyIcon}><MaterialIcons name="lock-reset" size={43} color="#7057E8" /></View>
+      <Text style={styles.eyebrow}>EMERGENCY ACCESS</Text>
+      <StepCopy headingRef={headingRef} title="Lost your QR code?" body="Don't worry—there is an emergency unlock. Only use it if you really need to!" alreadyViewed={alreadyViewed} onComplete={onRevealComplete} reduceMotion={reduceMotion} readingDelayMs={readingDelayMs} postWritingDelayMs={postWritingDelayMs} />
     </View>
+  );
+}
+
+function StepCopy({ headingRef, title, body, alreadyViewed, onComplete, reduceMotion, readingDelayMs, postWritingDelayMs, compact = false }: {
+  headingRef: React.RefObject<Text | null>;
+  title: string;
+  body: string;
+  alreadyViewed: boolean;
+  onComplete: () => void;
+  reduceMotion: boolean;
+  readingDelayMs: number;
+  postWritingDelayMs: number;
+  compact?: boolean;
+}) {
+  const [visibleCharacters, setVisibleCharacters] = useState(alreadyViewed || reduceMotion ? body.length : 0);
+  const titleProgress = useRef(new Animated.Value(alreadyViewed || reduceMotion ? 1 : 0)).current;
+
+  useEffect(() => {
+    if (alreadyViewed) {
+      titleProgress.setValue(1);
+      setVisibleCharacters(body.length);
+      onComplete();
+      return;
+    }
+
+    const animation = Animated.timing(titleProgress, {
+      toValue: 1,
+      duration: reduceMotion ? 0 : TITLE_REVEAL_TIME,
+      useNativeDriver: true,
+    });
+    animation.start();
+    const typingDelay = reduceMotion ? 0 : TITLE_REVEAL_TIME;
+    const typingTimers = reduceMotion ? [] : Array.from({ length: body.length }, (_, index) =>
+      setTimeout(() => setVisibleCharacters(index + 1), typingDelay + (index + 1) * TYPE_CHARACTER_TIME)
+    );
+    const writingDuration = typingDelay + (reduceMotion ? 0 : body.length * TYPE_CHARACTER_TIME);
+    const completionTimer = setTimeout(onComplete, Math.max(readingDelayMs, writingDuration + postWritingDelayMs));
+
+    return () => {
+      animation.stop();
+      typingTimers.forEach(clearTimeout);
+      clearTimeout(completionTimer);
+    };
+  }, [alreadyViewed, body, onComplete, postWritingDelayMs, readingDelayMs, reduceMotion, titleProgress]);
+
+  return (
+    <>
+      <Animated.Text ref={headingRef} accessibilityRole="header" style={[styles.title, compact && styles.titleCompact, {
+        opacity: titleProgress,
+        transform: [{ translateY: titleProgress.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }],
+      }]}>{title}</Animated.Text>
+      <View style={styles.bodyFrame}>
+        <Text accessible={false} importantForAccessibility="no-hide-descendants" style={[styles.body, compact && styles.bodyCompact, styles.bodyMeasure]}>{body}</Text>
+        <Text accessibilityLabel={body} style={[styles.body, compact && styles.bodyCompact, styles.bodyTyped]}>{body.slice(0, visibleCharacters)}</Text>
+      </View>
+    </>
   );
 }
 
@@ -323,7 +408,7 @@ function Mechanism({ icon, title, text }: { icon: keyof typeof MaterialIcons.gly
 }
 
 function stepHint(step: number) {
-  return ["How ScanLock works", "Use App selector", "Make your key", "Lock and unlock"][step];
+  return ["How ScanLock works", "Use App selector", "Make your key", "Lock and unlock", "Last-resort access"][step];
 }
 
 const styles = StyleSheet.create({
@@ -353,9 +438,15 @@ const styles = StyleSheet.create({
   contentScroll: { flex: 1, width: "100%", maxWidth: 620, alignSelf: "center" },
   content: { flexGrow: 1, justifyContent: "center", paddingVertical: 20 },
   heroIcon: { width: 88, height: 88, borderRadius: 27, backgroundColor: "#EFECFF", alignItems: "center", justifyContent: "center", marginBottom: 25 },
+  emergencyIcon: { width: 88, height: 88, borderRadius: 27, backgroundColor: "#EFECFF", alignItems: "center", justifyContent: "center", marginBottom: 25 },
   eyebrow: { color: "#7057E8", fontSize: 11, fontWeight: "800", letterSpacing: 1.5, marginBottom: 8 },
-  title: { color: "#201C2B", fontSize: 34, lineHeight: 40, fontWeight: "800", letterSpacing: -1, maxWidth: 560 },
-  body: { color: "#5F596B", fontSize: 15, lineHeight: 23, marginTop: 12, maxWidth: 540 },
+  title: { color: "#201C2B", fontSize: 40, lineHeight: 47, fontWeight: "800", letterSpacing: -1.2, maxWidth: 580 },
+  titleCompact: { fontSize: 32, lineHeight: 38, letterSpacing: -0.8 },
+  bodyFrame: { position: "relative", width: "100%", maxWidth: 570 },
+  body: { color: "#4F485A", fontSize: 19, lineHeight: 29, marginTop: 16, maxWidth: 570, fontWeight: "500" },
+  bodyCompact: { fontSize: 16, lineHeight: 23, marginTop: 10 },
+  bodyMeasure: { opacity: 0 },
+  bodyTyped: { position: "absolute", top: 0, left: 0, right: 0 },
   pickerCard: { minHeight: 76, marginTop: 28, borderRadius: 20, borderWidth: 1, borderColor: "#E4E0ED", backgroundColor: "#FFFFFF", padding: 15, flexDirection: "row", alignItems: "center", gap: 13 },
   pickerIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: "#EFECFF", alignItems: "center", justifyContent: "center" },
   pickerCopy: { flex: 1 },
@@ -363,20 +454,22 @@ const styles = StyleSheet.create({
   pickerHint: { color: "#5F596B", fontSize: 12, marginTop: 3 },
   note: { flexDirection: "row", alignItems: "flex-start", gap: 8, marginTop: 17 },
   noteText: { flex: 1, color: "#4F485A", fontSize: 14, lineHeight: 20, fontWeight: "600" },
-  qrContainer: { width: 195, height: 195, alignSelf: "center", marginTop: 16, borderRadius: 21, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E9E6F0", alignItems: "center", justifyContent: "center" },
+  qrContainer: { width: 185, height: 185, alignSelf: "center", marginTop: 10, borderRadius: 21, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E9E6F0", alignItems: "center", justifyContent: "center" },
   exportCardContainer: { position: "absolute", left: -1000, top: 0 },
   shareButton: { width: "100%", maxWidth: 330, minHeight: 48, alignSelf: "center", marginTop: 12, borderRadius: 15, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: "#7057E8", flexDirection: "row", alignItems: "center", justifyContent: "space-between", shadowColor: "#7057E8", shadowOpacity: 0.24, shadowRadius: 12, shadowOffset: { width: 0, height: 7 }, elevation: 5 },
   shareButtonDisabled: { opacity: 0.55 },
   shareButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
-  mechanismRow: { flexDirection: "row", flexWrap: "wrap", gap: 14, marginTop: 30 },
-  mechanism: { flexGrow: 1, flexBasis: 155, borderTopWidth: 1, borderTopColor: "#DCD8E6", paddingTop: 16 },
+  mechanismRow: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 18 },
+  mechanism: { flexGrow: 1, flexBasis: 155, borderTopWidth: 1, borderTopColor: "#DCD8E6", paddingTop: 12 },
   mechanismTitle: { color: "#201C2B", fontSize: 15, fontWeight: "800", marginTop: 10 },
   mechanismText: { color: "#5F596B", fontSize: 12, lineHeight: 18, marginTop: 5 },
   actions: { minHeight: 62, width: "100%", maxWidth: 620, alignSelf: "center", flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 20 },
   backButton: { minHeight: 48, flexDirection: "row", alignItems: "center", gap: 7 },
   backText: { color: "#777181", fontSize: 15, fontWeight: "700" },
   nextButton: { minWidth: 136, minHeight: 52, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 12, backgroundColor: "#7057E8", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9 },
+  nextButtonDisabled: { backgroundColor: "#E7E3EE", shadowOpacity: 0, elevation: 0 },
   nextText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
+  nextTextDisabled: { color: "#746D7E" },
   hidden: { opacity: 0 },
   pressed: { opacity: 0.72 },
 });

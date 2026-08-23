@@ -3,13 +3,14 @@ import {
   hasSelection,
   isAuthorized,
   requestAuthorization,
+  selectApps,
   setBlockingEnabled,
 } from "@/services/appBlocker";
 import { validateQrPayload } from "@/services/qrCode";
 import { BarcodeScanningResult, useCameraPermissions } from "expo-camera";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Platform } from "react-native";
 import { useLockTimer } from "./use-lock-timer";
 
@@ -29,10 +30,77 @@ export function useLockScanner() {
   const [status, setStatus] = useState<ScanStatus>("scanning");
   const [torchEnabled, setTorchEnabled] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>();
+  const [chooseAppsFirstVisible, setChooseAppsFirstVisible] = useState(false);
+  const [isChoosingApps, setIsChoosingApps] = useState(false);
+  const [emergencyUnlockVisible, setEmergencyUnlockVisible] = useState(false);
+  const [emergencyUnlockCountdown, setEmergencyUnlockCountdown] = useState(10);
+  const [emergencyUnlockChanging, setEmergencyUnlockChanging] = useState(false);
   const scanLockRef = useRef(false);
   const completionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const lockTimer = useLockTimer();
+
+  const dismissChooseAppsFirst = useCallback(() => setChooseAppsFirstVisible(false), []);
+
+  const chooseAppsFromPrompt = useCallback(async () => {
+    if (isChoosingApps) return;
+    setIsChoosingApps(true);
+    try {
+      const authorized = await requestAuthorization();
+      if (!authorized) {
+        Alert.alert(
+          "Permission Required",
+          Platform.OS === "android"
+            ? "Enable ScanLock app blocking in Accessibility settings, then return to ScanLock."
+            : "Screen Time permission is required to select apps."
+        );
+        return;
+      }
+
+      await selectApps();
+      setChooseAppsFirstVisible(false);
+    } catch (error) {
+      console.error("Could not select apps:", error);
+      Alert.alert("Error", "Could not open the app selector.");
+    } finally {
+      setIsChoosingApps(false);
+    }
+  }, [isChoosingApps]);
+
+  useEffect(() => {
+    if (!emergencyUnlockVisible || emergencyUnlockCountdown === 0) return;
+    const timer = setTimeout(
+      () => setEmergencyUnlockCountdown((seconds) => Math.max(0, seconds - 1)),
+      1000
+    );
+    return () => clearTimeout(timer);
+  }, [emergencyUnlockCountdown, emergencyUnlockVisible]);
+
+  const requestEmergencyUnlock = useCallback(() => {
+    if (locked) setEmergencyUnlockCountdown(10);
+    setEmergencyUnlockVisible(true);
+  }, [locked]);
+
+  const cancelEmergencyUnlock = useCallback(() => {
+    if (!emergencyUnlockChanging) setEmergencyUnlockVisible(false);
+  }, [emergencyUnlockChanging]);
+
+  const performEmergencyUnlock = useCallback(async () => {
+    if (emergencyUnlockCountdown > 0 || emergencyUnlockChanging) return;
+    setEmergencyUnlockChanging(true);
+    try {
+      const result = await setBlockingEnabled(false);
+      setLockedState(result.locked);
+      await lockTimer.stop();
+      setEmergencyUnlockVisible(false);
+      Alert.alert("Unlocked", "App blocking has been disabled.");
+    } catch (error) {
+      console.error("Could not emergency unlock:", error);
+      Alert.alert("Error", "Could not disable app blocking.");
+    } finally {
+      setEmergencyUnlockChanging(false);
+    }
+  }, [emergencyUnlockChanging, emergencyUnlockCountdown, lockTimer.stop]);
 
   useFocusEffect(
     useCallback(() => {
@@ -73,10 +141,7 @@ export function useLockScanner() {
     if (!locked) {
       try {
         if (!hasSelection()) {
-          Alert.alert(
-            "Choose apps first",
-            "Open the Settings tab and select at least one app, category, or website before locking."
-          );
+          setChooseAppsFirstVisible(true);
           return;
         }
 
@@ -184,6 +249,16 @@ export function useLockScanner() {
     status,
     torchEnabled,
     errorMessage,
+    chooseAppsFirstVisible,
+    isChoosingApps,
+    chooseAppsFromPrompt,
+    dismissChooseAppsFirst,
+    emergencyUnlockVisible,
+    emergencyUnlockCountdown,
+    emergencyUnlockChanging,
+    requestEmergencyUnlock,
+    cancelEmergencyUnlock,
+    performEmergencyUnlock,
     open,
     close,
     retry,

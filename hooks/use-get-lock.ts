@@ -1,5 +1,8 @@
 import { getOrCreateQrPayload } from "@/services/qrCode";
-import { File, Paths } from "expo-file-system";
+import {
+  getOrCreateFoldableExport,
+  getOrCreatePngExport,
+} from "@/services/scanLockExport";
 import * as Sharing from "expo-sharing";
 import { useEffect, useRef, useState } from "react";
 import { Alert, View } from "react-native";
@@ -7,6 +10,7 @@ import { captureRef } from "react-native-view-shot";
 
 export function useGetLock() {
   const [qrPayload, setQrPayload] = useState<string | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
   const qrCardRef = useRef<View>(null);
 
   useEffect(() => {
@@ -24,9 +28,10 @@ export function useGetLock() {
     };
   }, []);
 
-  async function shareQrCode() {
-    if (!qrCardRef.current) return;
+  async function shareQrCode(format: "foldable" | "png") {
+    if (!qrCardRef.current || !qrPayload || isSharing) return;
 
+    setIsSharing(true);
     try {
       const sharingAvailable = await Sharing.isAvailableAsync();
 
@@ -35,15 +40,24 @@ export function useGetLock() {
         return;
       }
 
-      const captureUri = await captureRef(qrCardRef, {
-        format: "png",
-        quality: 1,
-      });
-      const capturedImage = new File(captureUri);
-      const sharedImage = new File(Paths.cache, "your_scanlock.png");
+      const captureQrCard = () =>
+        captureRef(qrCardRef, {
+          format: "png",
+          quality: 1,
+        });
 
-      if (sharedImage.exists) sharedImage.delete();
-      capturedImage.copy(sharedImage);
+      if (format === "foldable") {
+        const foldablePdf = await getOrCreateFoldableExport(qrPayload, captureQrCard);
+
+        await Sharing.shareAsync(foldablePdf.uri, {
+          mimeType: "application/pdf",
+          dialogTitle: "Print or Share ScanLock Foldable Card",
+          UTI: "com.adobe.pdf",
+        });
+        return;
+      }
+
+      const sharedImage = await getOrCreatePngExport(qrPayload, captureQrCard);
 
       await Sharing.shareAsync(sharedImage.uri, {
         mimeType: "image/png",
@@ -53,12 +67,15 @@ export function useGetLock() {
     } catch (error) {
       console.error("Could not share QR code:", error);
       Alert.alert("Error", "Could not share the QR code.");
+    } finally {
+      setIsSharing(false);
     }
   }
 
   return {
     qrPayload,
     qrCardRef,
+    isSharing,
     shareQrCode,
   };
 }

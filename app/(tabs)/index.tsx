@@ -1,3 +1,5 @@
+import { EmergencyUnlockModal } from "@/components/emergency/EmergencyUnlockModal";
+import { ChooseAppsFirstModal } from "@/components/scanner/ChooseAppsFirstModal";
 import { LockStatusCard } from "@/components/scanner/LockStatusCard";
 import { ScannerView } from "@/components/scanner/ScannerView";
 import { useLockScanner } from "@/hooks/use-lock-scanner";
@@ -37,11 +39,28 @@ export default function HomeScreen() {
   }
 
   return (
-    <LockStatusCard
-      locked={scanner.locked}
-      lockElapsed={scanner.lockElapsed}
-      onScan={scanner.open}
-    />
+    <>
+      <EmergencyUnlockModal
+        locked={scanner.locked}
+        visible={scanner.emergencyUnlockVisible}
+        countdown={scanner.emergencyUnlockCountdown}
+        changing={scanner.emergencyUnlockChanging}
+        onCancel={scanner.cancelEmergencyUnlock}
+        onConfirm={scanner.performEmergencyUnlock}
+      />
+      <ChooseAppsFirstModal
+        visible={scanner.chooseAppsFirstVisible}
+        choosing={scanner.isChoosingApps}
+        onChooseApps={scanner.chooseAppsFromPrompt}
+        onDismiss={scanner.dismissChooseAppsFirst}
+      />
+      <LockStatusCard
+        locked={scanner.locked}
+        lockElapsed={scanner.lockElapsed}
+        onScan={scanner.open}
+        onEmergencyUnlock={scanner.requestEmergencyUnlock}
+      />
+    </>
   );
 }
 

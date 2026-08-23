@@ -58,3 +58,18 @@ Post Production Goals:
     It should be smaller and foldable. Maybe change print image format to be part of foldable card or
     something like that. Or maybe offer multiple print formats or create a proper card to go with it
 - Need to develop out android side beyond current system (needs similar test framework and error handling that ios comes with)
+
+User Experience Feedback:
+- Some users felt anxious about locking their apps worried they may not unlock
+- Instructions need to be very clear, some reported not being certain which apps were
+  selected after choosing them
+- The provided scanlock could be better than just a png (perhaps other formats would be nice)
+- Sometimes users want to take a quick break (maybe add a 5 minute unlock break that works a few times a day?)
+
+Goals to fix user experience:
+- Intro page will be rendered more slowly to give the user more time to read it
+- Intro page will include section on which apps were selected (which will also be displayed in settings)
+- Intro page will include note on the emergency cancel button
+- The emergency cancel button will be moved to the main page. The emergency cancel button's time delay
+  will extend every time it is used after a recent usage up to some reasonable level (a minute)
+- Multiple Scanlock options will be provided

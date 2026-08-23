@@ -6,27 +6,13 @@ import {
   selectApps,
 } from "@/services/appBlocker";
 import { useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Alert, Platform } from "react-native";
 
 export function useSettings() {
   const [selectedAppCount, setSelectedAppCount] = useState(0);
   const [locked, setLocked] = useState(false);
   const [debugLockChanging, setDebugLockChanging] = useState(false);
-  const [emergencyUnlockVisible, setEmergencyUnlockVisible] = useState(false);
-  const [emergencyUnlockCountdown, setEmergencyUnlockCountdown] = useState(10);
-  const [emergencyUnlockChanging, setEmergencyUnlockChanging] = useState(false);
-
-  useEffect(() => {
-    if (!emergencyUnlockVisible || emergencyUnlockCountdown === 0) return;
-
-    const timer = setTimeout(
-      () => setEmergencyUnlockCountdown((seconds) => Math.max(0, seconds - 1)),
-      1000
-    );
-
-    return () => clearTimeout(timer);
-  }, [emergencyUnlockCountdown, emergencyUnlockVisible]);
 
   useFocusEffect(
     useCallback(() => {
@@ -78,33 +64,6 @@ export function useSettings() {
     }
   }
 
-  function requestEmergencyUnlock() {
-    setEmergencyUnlockCountdown(10);
-    setEmergencyUnlockVisible(true);
-  }
-
-  function cancelEmergencyUnlock() {
-    if (emergencyUnlockChanging) return;
-    setEmergencyUnlockVisible(false);
-  }
-
-  async function performEmergencyUnlock() {
-    if (emergencyUnlockCountdown > 0 || emergencyUnlockChanging) return;
-
-    setEmergencyUnlockChanging(true);
-    try {
-      const result = await setBlockingEnabled(false);
-      setLocked(result.locked);
-      setEmergencyUnlockVisible(false);
-      Alert.alert("Unlocked", "App blocking has been disabled.");
-    } catch (error) {
-      console.error("Could not emergency unlock:", error);
-      Alert.alert("Error", "Could not disable app blocking.");
-    } finally {
-      setEmergencyUnlockChanging(false);
-    }
-  }
-
   async function toggleDebugLock() {
     if (debugLockChanging) return;
 
@@ -149,13 +108,7 @@ export function useSettings() {
     selectedAppCount,
     locked,
     debugLockChanging,
-    emergencyUnlockVisible,
-    emergencyUnlockCountdown,
-    emergencyUnlockChanging,
     selectBlockedApps,
-    requestEmergencyUnlock,
-    cancelEmergencyUnlock,
-    performEmergencyUnlock,
     toggleDebugLock,
   };
 }

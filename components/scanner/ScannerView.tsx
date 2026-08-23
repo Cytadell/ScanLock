@@ -79,7 +79,7 @@ export function ScannerView({
   const frameColor = status === "success" ? successColor : ["error", "invalid-code"].includes(status) ? "#FF6B6B" : "#FFFFFF";
   const message = getStatusMessage(status, locked, errorMessage);
   const scannerGuidance = locked
-    ? "Lost your QR code? Use Emergency Unlock in the Settings tab."
+    ? "Lost your QR code? Close the scanner and use Emergency Unlock on the Home screen."
     : "Haven’t printed your QR code? Print or save it from the Get Lock tab before locking your apps.";
 
   useEffect(() => {
@@ -227,7 +227,7 @@ function getStatusAnnouncement(status: ScanStatus, isLocked: boolean, errorMessa
       return "Getting the camera ready. You may be asked to allow camera access.";
     case "scanning":
       return isLocked
-        ? "Camera ready. Position your ScanLock QR code in the frame. Lost your QR code? Use Emergency Unlock in the Settings tab."
+        ? "Camera ready. Position your ScanLock QR code in the frame. Lost your QR code? Close the scanner and use Emergency Unlock on the Home screen."
         : "Camera ready. Position your ScanLock QR code in the frame. Haven’t printed your QR code? Print or save it from the Get Lock tab before locking your apps.";
     case "verifying":
       return "QR code detected. Verifying.";

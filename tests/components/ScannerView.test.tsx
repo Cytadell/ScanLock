@@ -63,7 +63,7 @@ describe("ScannerView accessibility", () => {
     expect(screen.getByText(/Lost your QR code/)).toBeOnTheScreen();
     expect(screen.queryByText(/Haven’t printed your QR code/)).not.toBeOnTheScreen();
     expect(AccessibilityInfo.announceForAccessibility).toHaveBeenCalledWith(
-      expect.stringContaining("Use Emergency Unlock in the Settings tab")
+      expect.stringContaining("use Emergency Unlock on the Home screen")
     );
   });
 

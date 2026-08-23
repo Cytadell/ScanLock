@@ -11,9 +11,10 @@ type Props = {
   locked: boolean;
   lockElapsed: string;
   onScan: () => void;
+  onEmergencyUnlock: () => void;
 };
 
-export function LockStatusCard({ locked, lockElapsed, onScan }: Props) {
+export function LockStatusCard({ locked, lockElapsed, onScan, onEmergencyUnlock }: Props) {
   const [helpVisible, setHelpVisible] = useState(false);
   const helpButtonRef = useRef<View>(null);
   const helpTitleRef = useRef<Text>(null);
@@ -140,6 +141,21 @@ export function LockStatusCard({ locked, lockElapsed, onScan }: Props) {
             <Text style={styles.scanButtonText}>Scan to {locked ? "unlock" : "lock"}</Text>
             <MaterialIcons name="arrow-forward" size={21} color="#FFFFFF" />
           </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityHint={locked ? "Opens the timed emergency unlock confirmation" : "Explains that your apps are already unlocked"}
+            onPress={onEmergencyUnlock}
+            style={({ pressed }) => [
+              styles.emergencyButton,
+              !locked && styles.emergencyButtonUnlocked,
+              pressed && styles.emergencyButtonPressed,
+            ]}
+          >
+            <MaterialIcons name="warning-amber" size={19} color={locked ? "#A93629" : "#888397"} />
+            <Text style={[styles.emergencyButtonText, !locked && styles.emergencyButtonTextUnlocked]}>
+              Lost your QR code? Emergency Unlock
+            </Text>
+          </Pressable>
         </View>
       </ScrollView>
 
@@ -201,7 +217,7 @@ export function LockStatusCard({ locked, lockElapsed, onScan }: Props) {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#F8F7FC" },
   screenScroll: { flex: 1 },
-  container: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 18, paddingBottom: 40 },
+  container: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 18, paddingBottom: 18 },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", zIndex: 1 },
   brandRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   brandMark: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "#7057E8" },
@@ -225,6 +241,11 @@ const styles = StyleSheet.create({
   scanButton: { minHeight: 58, borderRadius: 18, paddingHorizontal: 20, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#7057E8", shadowColor: "#7057E8", shadowOpacity: 0.3, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
   scanButtonPressed: { opacity: 0.82 },
   scanButtonText: { color: "#FFFFFF", fontSize: 17, fontWeight: "700" },
+  emergencyButton: { minHeight: 48, borderRadius: 15, paddingHorizontal: 16, paddingVertical: 11, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#FFF0EC", borderWidth: 1, borderColor: "#E9B8AE" },
+  emergencyButtonUnlocked: { backgroundColor: "#FFF0EC", borderColor: "#E9B8AE" },
+  emergencyButtonPressed: { opacity: 0.72 },
+  emergencyButtonText: { color: "#A93629", fontSize: 14, fontWeight: "700", textAlign: "center" },
+  emergencyButtonTextUnlocked: { color: "#888397" },
   secureRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 6 },
   secureText: { flexShrink: 1, color: "#625D6F", fontSize: 12, textAlign: "center" },
   modalRoot: { flex: 1, justifyContent: "flex-end" },

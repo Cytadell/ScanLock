@@ -1,13 +1,13 @@
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 
 import { useLockScanner } from "@/hooks/use-lock-scanner";
-import { Alert } from "react-native";
 
 const mockGetLocked = jest.fn();
 const mockHasSelection = jest.fn();
 const mockIsAuthorized = jest.fn();
 const mockRequestAuthorization = jest.fn();
 const mockSetBlockingEnabled = jest.fn();
+const mockSelectApps = jest.fn();
 const mockValidateQrPayload = jest.fn();
 const mockRequestPermission = jest.fn();
 const mockImpactAsync = jest.fn();
@@ -24,6 +24,7 @@ jest.mock("@/services/appBlocker", () => ({
   hasSelection: () => mockHasSelection(),
   isAuthorized: () => mockIsAuthorized(),
   requestAuthorization: () => mockRequestAuthorization(),
+  selectApps: () => mockSelectApps(),
   setBlockingEnabled: (enabled: boolean) => mockSetBlockingEnabled(enabled),
 }));
 
@@ -64,6 +65,14 @@ jest.mock("expo-router", () => {
 
 const barcode = { data: "qr-payload", type: "qr", cornerPoints: [], bounds: undefined } as never;
 
+async function finishEmergencyUnlockCountdown() {
+  for (let second = 0; second < 10; second += 1) {
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+  }
+}
+
 describe("useLockScanner", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -74,6 +83,7 @@ describe("useLockScanner", () => {
     mockRequestPermission.mockResolvedValue({ granted: true });
     mockValidateQrPayload.mockResolvedValue(true);
     mockRequestAuthorization.mockResolvedValue(true);
+    mockSelectApps.mockResolvedValue({ count: 1 });
     mockSetBlockingEnabled.mockImplementation(async (enabled: boolean) => ({
       status: enabled ? "locked" : "unlocked",
       locked: enabled,
@@ -108,22 +118,34 @@ describe("useLockScanner", () => {
 
   it("prompts for a selection instead of opening the lock scanner", async () => {
     mockHasSelection.mockReturnValue(false);
-    const alert = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
     const { result } = await renderHook(() => useLockScanner());
 
     await act(async () => {
       await result.current.open();
     });
 
-    expect(alert).toHaveBeenCalledWith(
-      "Choose apps first",
-      "Open the Settings tab and select at least one app, category, or website before locking."
-    );
+    expect(result.current.chooseAppsFirstVisible).toBe(true);
     expect(result.current.isOpen).toBe(false);
     expect(mockIsAuthorized).not.toHaveBeenCalled();
     expect(mockRequestAuthorization).not.toHaveBeenCalled();
     expect(mockRequestPermission).not.toHaveBeenCalled();
-    alert.mockRestore();
+
+    await act(() => result.current.dismissChooseAppsFirst());
+    expect(result.current.chooseAppsFirstVisible).toBe(false);
+  });
+
+  it("opens the app picker from the choose-apps prompt", async () => {
+    mockHasSelection.mockReturnValue(false);
+    mockIsAuthorized.mockReturnValue(false);
+    const { result } = await renderHook(() => useLockScanner());
+
+    await act(async () => result.current.open());
+    await act(async () => result.current.chooseAppsFromPrompt());
+
+    expect(mockRequestAuthorization).toHaveBeenCalledTimes(1);
+    expect(mockSelectApps).toHaveBeenCalledTimes(1);
+    expect(result.current.chooseAppsFirstVisible).toBe(false);
+    expect(result.current.isChoosingApps).toBe(false);
   });
 
   it("requests Screen Time permission before opening the lock scanner", async () => {
@@ -338,5 +360,57 @@ describe("useLockScanner", () => {
     await act(() => result.current.close());
     expect(result.current.torchEnabled).toBe(false);
     expect(result.current.isOpen).toBe(false);
+  });
+
+  it("requires the full emergency unlock countdown", async () => {
+    jest.useFakeTimers();
+    mockGetLocked.mockReturnValue(true);
+    const { result } = await renderHook(() => useLockScanner());
+
+    await act(() => result.current.requestEmergencyUnlock());
+
+    expect(result.current.emergencyUnlockVisible).toBe(true);
+    expect(result.current.emergencyUnlockCountdown).toBe(10);
+
+    await act(async () => result.current.performEmergencyUnlock());
+    expect(mockSetBlockingEnabled).not.toHaveBeenCalled();
+
+    await finishEmergencyUnlockCountdown();
+    expect(result.current.emergencyUnlockCountdown).toBe(0);
+  });
+
+  it("disables blocking and stops the lock timer after emergency unlock", async () => {
+    jest.useFakeTimers();
+    mockGetLocked.mockReturnValue(true);
+    const { result } = await renderHook(() => useLockScanner());
+
+    await act(() => result.current.requestEmergencyUnlock());
+    await finishEmergencyUnlockCountdown();
+    await act(async () => result.current.performEmergencyUnlock());
+
+    expect(mockSetBlockingEnabled).toHaveBeenCalledWith(false);
+    expect(mockStorageRemoveItem).toHaveBeenCalledWith("@scanlock/locked-at");
+    expect(result.current.locked).toBe(false);
+    expect(result.current.emergencyUnlockVisible).toBe(false);
+    expect(result.current.emergencyUnlockChanging).toBe(false);
+  });
+
+  it("stays locked when emergency unlock fails", async () => {
+    jest.useFakeTimers();
+    mockGetLocked.mockReturnValue(true);
+    mockSetBlockingEnabled.mockRejectedValue(new Error("native failure"));
+    const consoleError = jest.spyOn(console, "error").mockImplementation(() => undefined);
+    const { result } = await renderHook(() => useLockScanner());
+
+    await act(() => result.current.requestEmergencyUnlock());
+    await finishEmergencyUnlockCountdown();
+    await act(async () => result.current.performEmergencyUnlock());
+
+    expect(mockSetBlockingEnabled).toHaveBeenCalledWith(false);
+    expect(mockStorageRemoveItem).not.toHaveBeenCalled();
+    expect(result.current.locked).toBe(true);
+    expect(result.current.emergencyUnlockVisible).toBe(true);
+    expect(result.current.emergencyUnlockChanging).toBe(false);
+    consoleError.mockRestore();
   });
 });
