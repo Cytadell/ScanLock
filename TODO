@@ -26,25 +26,21 @@ Additional TODOs
 21. Create an advanced settings tab to include special locking settings (optional)
 22. Edit emergency access so it has a time delayed to unlock or some kind of stronger friction (CLEARED)
 23. Add/make app logo (CLEARED)
-23.5 make general UI improvements
-24. Add proper commenting to code
 25. Add locked time counter to scan page. (CLEARED)
-26. Add lock time recording and statistics (Optional)
 Compliance TODOS:
-1. Complete release readiness: privacy policy, App Store privacy details, camera usage description, icons, splash screen, screenshots, support URL, store copy, TestFlight checklist, production smoke test, and Family Controls entitlement approval
-2. Complete an accessibility and device-layout pass: VoiceOver, Dynamic Type, contrast, reduced motion, touch targets, small iPhones, landscape where supported, and iPads
-
+1. Complete release readiness: privacy policy, App Store privacy details, camera usage description, icons, splash screen, screenshots, support URL, store copy, TestFlight checklist, production smoke test, and Family Controls entitlement approval CLEARED
+2. Complete an accessibility and device-layout pass: VoiceOver, Dynamic Type, contrast, reduced motion, touch targets, small iPhones, landscape where supported, and iPads CLEARED
 
 8/18 plan:
 - Make it github public ready then make it public CLEARED
 - Make basic compliance good CLEARED
 - Prepare to test flight for ios
     - To Prepare do the following:
-        - Add a message in the scanner saying if the user hasn't printed their QR code they need to do that (If curr unlocked)
-        - Make a note in scan to unlock that asks users if they lost the qr code they can use emergency unlock in settings tab (If curr locked)
-        - Actually go over all the messaging and edit it
+        - Add a message in the scanner saying if the user hasn't printed their QR code they need to do that (If curr unlocked) CLEARED
+        - Make a note in scan to unlock that asks users if they lost the qr code they can use emergency unlock in settings tab (If curr locked) CLEARED
+        - Actually go over all the messaging and edit it CLEARED
 
-Text to change:
+Text to change: (all cleared)
 - Update home page sub-message "Scan a QR code..."
 - Remove Home page sub-message "changes only happen after..."
 - Change all of help screen
@@ -52,3 +48,13 @@ Text to change:
 - Maybe don't allow category select but order it based on usage(?)
 - Go over intro page again and edit
 - Look through error messaging
+
+Post Production Goals:
+- Add proper commenting to code
+- Add custom overlay for restricted apps
+- Add lock time local recording and statistics (Optional)
+- User test interacting with the locking paper
+    - Notes assoc: Currently the printable image would take up most of a page which isn't what most want,
+    It should be smaller and foldable. Maybe change print image format to be part of foldable card or
+    something like that. Or maybe offer multiple print formats or create a proper card to go with it
+- Need to develop out android side beyond current system (needs similar test framework and error handling that ios comes with)
