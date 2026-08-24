@@ -5,9 +5,14 @@ import { FirstRunWalkthrough } from "@/components/onboarding/FirstRunWalkthrough
 
 const mockRequestAuthorization = jest.fn(async () => true);
 const mockSelectApps = jest.fn(async () => ({ count: 1 }));
+const mockMarkQrKeyReady = jest.fn();
 
 jest.mock("@expo/vector-icons/MaterialIcons", () => () => null);
 jest.mock("react-native-qrcode-svg", () => () => null);
+jest.mock("expo-sharing", () => ({
+  isAvailableAsync: jest.fn(async () => false),
+  shareAsync: jest.fn(),
+}));
 jest.mock("react-native/Libraries/Utilities/warnOnce", () => ({
   __esModule: true,
   default: () => undefined,
@@ -18,6 +23,9 @@ jest.mock("@/services/appBlocker", () => ({
 }));
 jest.mock("@/services/qrCode", () => ({
   getOrCreateQrPayload: jest.fn(async () => "scanlock:test"),
+}));
+jest.mock("@/services/qrKeyReadiness", () => ({
+  markQrKeyReady: () => mockMarkQrKeyReady(),
 }));
 jest.mock("@/hooks/use-reduce-motion", () => ({
   useReduceMotion: () => true,
@@ -54,7 +62,10 @@ describe("FirstRunWalkthrough accessibility", () => {
     await continueAfterReveal();
     await continueAfterReveal();
 
-    expect(await screen.findByRole("button", { name: "Print or Share QR code" })).toBeEnabled();
+    const shareButton = await screen.findByRole("button", { name: "Print or Share QR code" });
+    expect(shareButton).toBeEnabled();
+    await fireEvent.press(shareButton);
+    expect(mockMarkQrKeyReady).not.toHaveBeenCalled();
   });
 
   it("opens the app picker immediately after authorization is accepted", async () => {
@@ -64,6 +75,7 @@ describe("FirstRunWalkthrough accessibility", () => {
 
     expect(mockRequestAuthorization).toHaveBeenCalledTimes(1);
     expect(mockSelectApps).toHaveBeenCalledTimes(1);
+    expect(await screen.findByLabelText("1 selected item")).toBeOnTheScreen();
     expect(Alert.alert).not.toHaveBeenCalledWith(
       "Permission required",
       expect.any(String)

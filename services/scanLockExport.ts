@@ -33,10 +33,9 @@ export async function getOrCreateFoldableExport(qrPayload: string, captureQrCard
   const files = prepareExportFiles(qrPayload);
 
   if (!files.foldablePdf.exists) {
-    const png = await getOrCreatePngExport(qrPayload, captureQrCard);
-    const encodedImage = await png.base64();
+    const html = await getFoldableCardHtml(qrPayload, captureQrCard);
     const { uri } = await Print.printToFileAsync({
-      html: createFoldableCardHtml(encodedImage),
+      html,
       width: 612,
       height: 792,
       margins: { top: 0, right: 0, bottom: 0, left: 0 },
@@ -47,6 +46,13 @@ export async function getOrCreateFoldableExport(qrPayload: string, captureQrCard
   }
 
   return files.foldablePdf;
+}
+
+export async function getFoldableCardHtml(qrPayload: string, captureQrCard: CaptureQrCard) {
+  const png = await getOrCreatePngExport(qrPayload, captureQrCard);
+  const encodedImage = await png.base64();
+
+  return createFoldableCardHtml(encodedImage);
 }
 
 function prepareExportFiles(qrPayload: string): ExportFiles {
@@ -80,7 +86,7 @@ export function createFoldableCardHtml(encodedImage: string) {
   return `<!DOCTYPE html>
 <html>
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=816, initial-scale=1.0" />
     <style>
       @page { size: 8.5in 11in; margin: 0; }
       * { box-sizing: border-box; }

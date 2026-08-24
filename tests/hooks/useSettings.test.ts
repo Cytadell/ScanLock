@@ -42,6 +42,7 @@ describe("useSettings app picker authorization", () => {
     expect(mockRequestAuthorization).toHaveBeenCalledTimes(1);
     expect(mockSelectApps).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(result.current.selectedAppCount).toBe(2));
+    expect(result.current.selectionRefreshKey).toBe(1);
     expect(Alert.alert).not.toHaveBeenCalledWith("Permission Required", expect.any(String));
   });
 

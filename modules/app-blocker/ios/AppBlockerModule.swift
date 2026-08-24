@@ -5,6 +5,18 @@ public final class AppBlockerModule: Module {
     public func definition() -> ModuleDefinition {
         Name("AppBlocker")
 
+        Constant("supportsSelectedActivityList") {
+            true
+        }
+
+        View(SelectedActivityListView.self) {
+            ViewName("SelectedActivityList")
+
+            Prop("refreshKey") { (view: SelectedActivityListView, _: Int) in
+                view.reloadSelection()
+            }
+        }
+
         AsyncFunction("requestAuthorization") {
             await requestFamilyControlsAuthorization()
         }

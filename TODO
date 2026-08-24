@@ -67,9 +67,15 @@ User Experience Feedback:
 - Sometimes users want to take a quick break (maybe add a 5 minute unlock break that works a few times a day?)
 
 Goals to fix user experience:
-- Intro page will be rendered more slowly to give the user more time to read it
+- Intro page will be rendered more slowly to give the user more time to read it (CLEAR)
 - Intro page will include section on which apps were selected (which will also be displayed in settings)
-- Intro page will include note on the emergency cancel button
-- The emergency cancel button will be moved to the main page. The emergency cancel button's time delay
-  will extend every time it is used after a recent usage up to some reasonable level (a minute)
-- Multiple Scanlock options will be provided
+- Intro page will include note on the emergency cancel button (CLEARED)
+- The emergency cancel button will be moved to the main page. (CLEARED)
+- The emergency cancel button's time delay will extend every time it is used after a recent usage up to some reasonable level (a minute)
+- Multiple Scanlock options will be provided (CLEARED needs UI fix)
+- Remove Flashlight icon from devices without a flashlight
+- Printing ScanLock step needs to be made more clear
+- Change so scan to lock cannot be pressed if no apps are selected, replace with a select apps screen
+- Change so if print has not been pressed, that pressing scan to lock redirects to printing page
+- Make it so intro app selection is harder to skip with the continue button requiring and are you sure
+if none were selected

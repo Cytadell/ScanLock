@@ -1,5 +1,6 @@
 import { useOnboardingReplay } from "@/hooks/use-onboarding-replay";
 import { useSettings } from "@/hooks/use-settings";
+import { SelectedActivityList } from "@/components/app-blocker/SelectedActivityList";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import {
   Linking,
@@ -22,6 +23,7 @@ function openConfiguredUrl(url: string | undefined) {
 export default function SettingsScreen() {
   const {
     selectedAppCount,
+    selectionRefreshKey,
     locked,
     debugLockChanging,
     selectBlockedApps,
@@ -63,6 +65,12 @@ export default function SettingsScreen() {
               <Text style={styles.cardDescription}>Choose the apps that become unavailable when ScanLock is active.</Text>
             </View>
           </View>
+
+          <SelectedActivityList
+            refreshKey={selectionRefreshKey}
+            selectionCount={selectedAppCount}
+            style={styles.selectedActivities}
+          />
 
           <Pressable
             accessibilityRole="button"
@@ -180,7 +188,7 @@ export default function SettingsScreen() {
                 </View>
                 <View style={styles.cardCopy}>
                   <Text style={styles.cardTitle}>Onboarding</Text>
-                  <Text style={styles.cardDescription}>Reset the first-startup flag and open the walkthrough again.</Text>
+                  <Text style={styles.cardDescription}>Reset first-startup and QR reminder progress, then open the walkthrough again.</Text>
                 </View>
               </View>
 
@@ -231,6 +239,7 @@ const styles = StyleSheet.create({
   primaryIcon: { width: 48, height: 48, borderRadius: 15, backgroundColor: "#EFECFF", alignItems: "center", justifyContent: "center" },
   debugIcon: { width: 48, height: 48, borderRadius: 15, backgroundColor: "#EAF4EE", alignItems: "center", justifyContent: "center" },
   cardCopy: { flex: 1 },
+  selectedActivities: { marginTop: 16 },
   cardTitle: { color: "#201C2B", fontSize: 19, fontWeight: "800" },
   cardDescription: { color: "#5F596B", fontSize: 14, lineHeight: 21, marginTop: 5 },
   primaryButton: { minHeight: 50, borderRadius: 15, marginTop: 20, paddingHorizontal: 17, paddingVertical: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#7057E8" },

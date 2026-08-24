@@ -8,6 +8,8 @@ const mockIsAuthorized = jest.fn();
 const mockRequestAuthorization = jest.fn();
 const mockSetBlockingEnabled = jest.fn();
 const mockSelectApps = jest.fn();
+const mockHasQrKeyReady = jest.fn();
+const mockMarkQrKeyReady = jest.fn();
 const mockValidateQrPayload = jest.fn();
 const mockRequestPermission = jest.fn();
 const mockImpactAsync = jest.fn();
@@ -30,6 +32,11 @@ jest.mock("@/services/appBlocker", () => ({
 
 jest.mock("@/services/qrCode", () => ({
   validateQrPayload: (value: string) => mockValidateQrPayload(value),
+}));
+
+jest.mock("@/services/qrKeyReadiness", () => ({
+  hasQrKeyReady: () => mockHasQrKeyReady(),
+  markQrKeyReady: () => mockMarkQrKeyReady(),
 }));
 
 jest.mock("@react-native-async-storage/async-storage", () => ({
@@ -84,6 +91,10 @@ describe("useLockScanner", () => {
     mockValidateQrPayload.mockResolvedValue(true);
     mockRequestAuthorization.mockResolvedValue(true);
     mockSelectApps.mockResolvedValue({ count: 1 });
+    mockHasQrKeyReady.mockResolvedValue(true);
+    mockMarkQrKeyReady.mockImplementation(async () => {
+      mockHasQrKeyReady.mockResolvedValue(true);
+    });
     mockSetBlockingEnabled.mockImplementation(async (enabled: boolean) => ({
       status: enabled ? "locked" : "unlocked",
       locked: enabled,
@@ -144,8 +155,46 @@ describe("useLockScanner", () => {
 
     expect(mockRequestAuthorization).toHaveBeenCalledTimes(1);
     expect(mockSelectApps).toHaveBeenCalledTimes(1);
+    expect(result.current.hasSelectedApps).toBe(true);
     expect(result.current.chooseAppsFirstVisible).toBe(false);
     expect(result.current.isChoosingApps).toBe(false);
+  });
+
+  it("shows the QR key reminder before the first lock scan", async () => {
+    mockHasQrKeyReady.mockResolvedValue(false);
+    const { result } = await renderHook(() => useLockScanner());
+
+    await act(async () => result.current.open());
+
+    expect(result.current.qrKeyReminderVisible).toBe(true);
+    expect(result.current.isOpen).toBe(false);
+    expect(mockIsAuthorized).not.toHaveBeenCalled();
+    expect(mockRequestPermission).not.toHaveBeenCalled();
+  });
+
+  it("dismisses the QR key reminder without opening the scanner", async () => {
+    mockHasQrKeyReady.mockResolvedValue(false);
+    const { result } = await renderHook(() => useLockScanner());
+
+    await act(async () => result.current.open());
+    await act(() => result.current.dismissQrKeyReminder());
+
+    expect(result.current.qrKeyReminderVisible).toBe(false);
+    expect(result.current.isOpen).toBe(false);
+    expect(mockMarkQrKeyReady).not.toHaveBeenCalled();
+  });
+
+  it("confirms QR key readiness and continues into the scanner", async () => {
+    mockHasQrKeyReady.mockResolvedValue(false);
+    const { result } = await renderHook(() => useLockScanner());
+
+    await act(async () => result.current.open());
+    await act(async () => result.current.confirmQrKeyAndOpen());
+
+    expect(mockMarkQrKeyReady).toHaveBeenCalledTimes(1);
+    expect(result.current.qrKeyReminderVisible).toBe(false);
+    expect(result.current.isOpen).toBe(true);
+    expect(result.current.status).toBe("scanning");
   });
 
   it("requests Screen Time permission before opening the lock scanner", async () => {
@@ -180,15 +229,18 @@ describe("useLockScanner", () => {
     mockGetLocked.mockReturnValue(true);
     mockHasSelection.mockReturnValue(false);
     mockIsAuthorized.mockReturnValue(false);
+    mockHasQrKeyReady.mockResolvedValue(false);
     const { result } = await renderHook(() => useLockScanner());
+    const selectionChecksAfterLoad = mockHasSelection.mock.calls.length;
 
     await act(async () => {
       await result.current.open();
     });
 
     expect(mockIsAuthorized).not.toHaveBeenCalled();
-    expect(mockHasSelection).not.toHaveBeenCalled();
+    expect(mockHasSelection).toHaveBeenCalledTimes(selectionChecksAfterLoad);
     expect(mockRequestAuthorization).not.toHaveBeenCalled();
+    expect(mockHasQrKeyReady).not.toHaveBeenCalled();
     expect(result.current.isOpen).toBe(true);
   });
 

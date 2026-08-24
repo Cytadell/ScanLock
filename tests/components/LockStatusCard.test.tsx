@@ -24,7 +24,7 @@ describe("LockStatusCard", () => {
     [false, "Your apps are available", "Scan to lock"],
     [true, "Your apps are locked", "Scan to unlock"],
   ])("renders the %p lock state", async (locked, title, action) => {
-    await render(<LockStatusCard locked={locked} lockElapsed="01:02:03" onScan={jest.fn()} onEmergencyUnlock={jest.fn()} />);
+    await render(<LockStatusCard locked={locked} hasSelectedApps lockElapsed="01:02:03" onScan={jest.fn()} onChooseApps={jest.fn()} choosingApps={false} onEmergencyUnlock={jest.fn()} />);
 
     expect(screen.getByText(title)).toBeOnTheScreen();
     expect(screen.getByText(action)).toBeOnTheScreen();
@@ -33,7 +33,7 @@ describe("LockStatusCard", () => {
 
   it("starts scanning with haptic feedback", async () => {
     const onScan = jest.fn();
-    await render(<LockStatusCard locked={false} lockElapsed="00:00:00" onScan={onScan} onEmergencyUnlock={jest.fn()} />);
+    await render(<LockStatusCard locked={false} hasSelectedApps lockElapsed="00:00:00" onScan={onScan} onChooseApps={jest.fn()} choosingApps={false} onEmergencyUnlock={jest.fn()} />);
 
     await fireEvent.press(screen.getByLabelText("Scan a QR code to lock apps"));
 
@@ -42,7 +42,7 @@ describe("LockStatusCard", () => {
   });
 
   it("opens and closes the help sheet", async () => {
-    await render(<LockStatusCard locked={false} lockElapsed="00:00:00" onScan={jest.fn()} onEmergencyUnlock={jest.fn()} />);
+    await render(<LockStatusCard locked={false} hasSelectedApps lockElapsed="00:00:00" onScan={jest.fn()} onChooseApps={jest.fn()} choosingApps={false} onEmergencyUnlock={jest.fn()} />);
 
     await fireEvent.press(screen.getByLabelText("Open help"));
     expect(screen.getByText("ScanLock help")).toBeOnTheScreen();
@@ -56,10 +56,25 @@ describe("LockStatusCard", () => {
 
   it.each([false, true])("shows emergency unlock beneath the scan button when locked is %p", async (locked) => {
     const onEmergencyUnlock = jest.fn();
-    await render(<LockStatusCard locked={locked} lockElapsed="00:00:00" onScan={jest.fn()} onEmergencyUnlock={onEmergencyUnlock} />);
+    await render(<LockStatusCard locked={locked} hasSelectedApps lockElapsed="00:00:00" onScan={jest.fn()} onChooseApps={jest.fn()} choosingApps={false} onEmergencyUnlock={onEmergencyUnlock} />);
 
     await fireEvent.press(screen.getByRole("button", { name: "Lost your QR code? Emergency Unlock" }));
 
     expect(onEmergencyUnlock).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders the choose-apps state and opens the app picker", async () => {
+    const onChooseApps = jest.fn();
+    const onScan = jest.fn();
+    await render(<LockStatusCard locked={false} hasSelectedApps={false} lockElapsed="00:00:00" onScan={onScan} onChooseApps={onChooseApps} choosingApps={false} onEmergencyUnlock={jest.fn()} />);
+
+    expect(screen.getByRole("header", { name: "No apps selected" })).toBeOnTheScreen();
+    expect(screen.getByText("Choose the apps you want to lock before scanning your ScanLock QR code.")).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole("button", { name: "Choose apps" }));
+
+    expect(mockImpactAsync).toHaveBeenCalledWith("light");
+    expect(onChooseApps).toHaveBeenCalledTimes(1);
+    expect(onScan).not.toHaveBeenCalled();
   });
 });

@@ -9,19 +9,33 @@ import { useReduceMotion } from "@/hooks/use-reduce-motion";
 
 type Props = {
   locked: boolean;
+  hasSelectedApps: boolean;
   lockElapsed: string;
   onScan: () => void;
+  onChooseApps: () => void;
+  choosingApps: boolean;
   onEmergencyUnlock: () => void;
 };
 
-export function LockStatusCard({ locked, lockElapsed, onScan, onEmergencyUnlock }: Props) {
+export function LockStatusCard({
+  locked,
+  hasSelectedApps,
+  lockElapsed,
+  onScan,
+  onChooseApps,
+  choosingApps,
+  onEmergencyUnlock,
+}: Props) {
   const [helpVisible, setHelpVisible] = useState(false);
   const helpButtonRef = useRef<View>(null);
   const helpTitleRef = useRef<Text>(null);
   const wasHelpVisibleRef = useRef(false);
   const reduceMotion = useReduceMotion();
-  const accent = locked ? "#B83F31" : "#08785A";
-  const tint = locked ? "#FFF0EC" : "#E9F8F3";
+  const showEmptySelection = !locked && !hasSelectedApps;
+  const accent = locked ? "#B83F31" : showEmptySelection ? "#A66A00" : "#08785A";
+  const tint = locked ? "#FFF0EC" : showEmptySelection ? "#FFF3C4" : "#E9F8F3";
+  const iconBackground = showEmptySelection ? "#E5B93F" : accent;
+  const iconColor = showEmptySelection ? "#513A00" : "#FFFFFF";
 
   // Copy and paste an item here to add another help bubble.
   const helpItems = [
@@ -45,6 +59,11 @@ export function LockStatusCard({ locked, lockElapsed, onScan, onEmergencyUnlock 
   function handlePress() {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onScan();
+  }
+
+  function handleChooseApps() {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onChooseApps();
   }
 
   useEffect(() => {
@@ -93,11 +112,11 @@ export function LockStatusCard({ locked, lockElapsed, onScan, onEmergencyUnlock 
 
         <View style={styles.content}>
           <View accessible={false} style={[styles.lockCircle, { backgroundColor: tint }]}>
-            <View style={[styles.lockCircleInner, { backgroundColor: accent }]}>
+            <View style={[styles.lockCircleInner, { backgroundColor: iconBackground }]}>
               <MaterialIcons
-                name={locked ? "lock" : "lock-open"}
+                name={locked ? "lock" : showEmptySelection ? "apps" : "lock-open"}
                 size={48}
-                color="#FFFFFF"
+                color={iconColor}
               />
             </View>
           </View>
@@ -105,15 +124,17 @@ export function LockStatusCard({ locked, lockElapsed, onScan, onEmergencyUnlock 
           <View style={[styles.statusPill, { backgroundColor: tint }]}>
             <View style={[styles.statusDot, { backgroundColor: accent }]} />
             <Text style={[styles.statusText, { color: accent }]}>
-              APPS {locked ? "LOCKED" : "UNLOCKED"}
+              {showEmptySelection ? "NO APPS SELECTED" : `APPS ${locked ? "LOCKED" : "UNLOCKED"}`}
             </Text>
           </View>
 
           <Text accessibilityRole="header" style={styles.title}>
-            Your apps are {locked ? "locked" : "available"}
+            {showEmptySelection ? "No apps selected" : `Your apps are ${locked ? "locked" : "available"}`}
           </Text>
           <Text style={styles.subtitle}>
-            {locked
+            {showEmptySelection
+              ? "Choose the apps you want to lock before scanning your ScanLock QR code."
+              : locked
               ? "Scan a QR code when you’re ready to get access again."
               : "Ready to focus? Scan a QR code to block your selected apps."}
           </Text>
@@ -133,13 +154,21 @@ export function LockStatusCard({ locked, lockElapsed, onScan, onEmergencyUnlock 
         <View style={styles.footer}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Scan a QR code to ${locked ? "unlock" : "lock"} apps`}
-            onPress={handlePress}
-            style={({ pressed }) => [styles.scanButton, pressed && styles.scanButtonPressed]}
+            accessibilityLabel={showEmptySelection ? "Choose apps" : `Scan a QR code to ${locked ? "unlock" : "lock"} apps`}
+            accessibilityState={{ disabled: showEmptySelection && choosingApps }}
+            disabled={showEmptySelection && choosingApps}
+            onPress={showEmptySelection ? handleChooseApps : handlePress}
+            style={({ pressed }) => [
+              styles.scanButton,
+              showEmptySelection && choosingApps && styles.scanButtonDisabled,
+              pressed && styles.scanButtonPressed,
+            ]}
           >
-            <MaterialIcons name="qr-code-scanner" size={24} color="#FFFFFF" />
-            <Text style={styles.scanButtonText}>Scan to {locked ? "unlock" : "lock"}</Text>
-            <MaterialIcons name="arrow-forward" size={21} color="#FFFFFF" />
+            <MaterialIcons name={showEmptySelection ? "apps" : "qr-code-scanner"} size={24} color="#FFFFFF" />
+            <Text style={styles.scanButtonText}>
+              {showEmptySelection ? "Choose apps" : `Scan to ${locked ? "unlock" : "lock"}`}
+            </Text>
+            <MaterialIcons name={showEmptySelection ? "chevron-right" : "arrow-forward"} size={21} color="#FFFFFF" />
           </Pressable>
           <Pressable
             accessibilityRole="button"
@@ -240,6 +269,7 @@ const styles = StyleSheet.create({
   footer: { gap: 16, marginTop: 10 },
   scanButton: { minHeight: 58, borderRadius: 18, paddingHorizontal: 20, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#7057E8", shadowColor: "#7057E8", shadowOpacity: 0.3, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
   scanButtonPressed: { opacity: 0.82 },
+  scanButtonDisabled: { opacity: 0.55 },
   scanButtonText: { color: "#FFFFFF", fontSize: 17, fontWeight: "700" },
   emergencyButton: { minHeight: 48, borderRadius: 15, paddingHorizontal: 16, paddingVertical: 11, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#FFF0EC", borderWidth: 1, borderColor: "#E9B8AE" },
   emergencyButtonUnlocked: { backgroundColor: "#FFF0EC", borderColor: "#E9B8AE" },

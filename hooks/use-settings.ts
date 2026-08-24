@@ -11,6 +11,7 @@ import { Alert, Platform } from "react-native";
 
 export function useSettings() {
   const [selectedAppCount, setSelectedAppCount] = useState(0);
+  const [selectionRefreshKey, setSelectionRefreshKey] = useState(0);
   const [locked, setLocked] = useState(false);
   const [debugLockChanging, setDebugLockChanging] = useState(false);
 
@@ -58,6 +59,7 @@ export function useSettings() {
 
       const selection = await selectApps();
       setSelectedAppCount(selection.count);
+      setSelectionRefreshKey((current) => current + 1);
     } catch (error) {
       console.error("Could not select apps:", error);
       Alert.alert("Error", "Could not open the app selector.");
@@ -106,6 +108,7 @@ export function useSettings() {
 
   return {
     selectedAppCount,
+    selectionRefreshKey,
     locked,
     debugLockChanging,
     selectBlockedApps,

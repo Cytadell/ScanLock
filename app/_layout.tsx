@@ -10,6 +10,7 @@ import { FirstRunWalkthrough } from '@/components/onboarding/FirstRunWalkthrough
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { OnboardingReplayContext } from '@/hooks/use-onboarding-replay';
 import { completeOnboarding, hasCompletedOnboarding, resetOnboarding } from '@/services/onboardingStorage';
+import { resetQrKeyReady } from '@/services/qrKeyReadiness';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -34,7 +35,7 @@ export default function RootLayout() {
   }
 
   async function replayOnboarding() {
-    await resetOnboarding();
+    await Promise.all([resetOnboarding(), resetQrKeyReady()]);
     setOnboardingComplete(false);
   }
 

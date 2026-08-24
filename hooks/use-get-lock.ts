@@ -1,5 +1,7 @@
 import { getOrCreateQrPayload } from "@/services/qrCode";
+import { markQrKeyReady } from "@/services/qrKeyReadiness";
 import {
+  getFoldableCardHtml,
   getOrCreateFoldableExport,
   getOrCreatePngExport,
 } from "@/services/scanLockExport";
@@ -11,6 +13,9 @@ import { captureRef } from "react-native-view-shot";
 export function useGetLock() {
   const [qrPayload, setQrPayload] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
+  const [foldablePreviewHtml, setFoldablePreviewHtml] = useState<string | null>(null);
+  const [isPreparingPreview, setIsPreparingPreview] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const qrCardRef = useRef<View>(null);
 
   useEffect(() => {
@@ -28,23 +33,50 @@ export function useGetLock() {
     };
   }, []);
 
+  const captureQrCard = () => {
+    if (!qrCardRef.current) {
+      return Promise.reject(new Error("The QR key is not ready to capture."));
+    }
+
+    return captureRef(qrCardRef, {
+      format: "png",
+      quality: 1,
+    });
+  };
+
+  async function prepareFoldablePreview() {
+    if (!qrPayload || foldablePreviewHtml || isPreparingPreview) return;
+
+    setIsPreparingPreview(true);
+    setPreviewError(null);
+    try {
+      const html = await getFoldableCardHtml(qrPayload, captureQrCard);
+      setFoldablePreviewHtml(html);
+    } catch (error) {
+      console.error("Could not prepare foldable card preview:", error);
+      setPreviewError("The foldable card preview could not be prepared.");
+    } finally {
+      setIsPreparingPreview(false);
+    }
+  }
+
   async function shareQrCode(format: "foldable" | "png") {
     if (!qrCardRef.current || !qrPayload || isSharing) return;
 
     setIsSharing(true);
     try {
+      try {
+        await markQrKeyReady();
+      } catch (error) {
+        console.error("Could not save QR key readiness:", error);
+      }
+
       const sharingAvailable = await Sharing.isAvailableAsync();
 
       if (!sharingAvailable) {
         Alert.alert("Sharing unavailable", "This device cannot share files.");
         return;
       }
-
-      const captureQrCard = () =>
-        captureRef(qrCardRef, {
-          format: "png",
-          quality: 1,
-        });
 
       if (format === "foldable") {
         const foldablePdf = await getOrCreateFoldableExport(qrPayload, captureQrCard);
@@ -75,7 +107,11 @@ export function useGetLock() {
   return {
     qrPayload,
     qrCardRef,
+    foldablePreviewHtml,
+    isPreparingPreview,
+    previewError,
     isSharing,
+    prepareFoldablePreview,
     shareQrCode,
   };
 }

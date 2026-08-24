@@ -21,6 +21,7 @@ import { captureRef } from "react-native-view-shot";
 
 import { QrKeyCard } from "@/components/qr/QrKeyCard";
 import { PadlockQrCodeIcon } from "@/components/icons/PadlockQrCodeIcon";
+import { SelectedActivityList } from "@/components/app-blocker/SelectedActivityList";
 import { useReduceMotion } from "@/hooks/use-reduce-motion";
 import { requestAuthorization, selectApps } from "@/services/appBlocker";
 import { getOrCreateQrPayload } from "@/services/qrCode";
@@ -41,6 +42,8 @@ export function FirstRunWalkthrough({ onComplete, readingDelayMs = MIN_STEP_READ
   const [step, setStep] = useState(0);
   const [qrPayload, setQrPayload] = useState<string | null>(null);
   const [isChoosingApps, setIsChoosingApps] = useState(false);
+  const [selectedAppCount, setSelectedAppCount] = useState(0);
+  const [selectionRefreshKey, setSelectionRefreshKey] = useState(0);
   const [isCompleting, setIsCompleting] = useState(false);
   const [isSharingQr, setIsSharingQr] = useState(false);
   const [canContinue, setCanContinue] = useState(false);
@@ -88,7 +91,9 @@ export function FirstRunWalkthrough({ onComplete, readingDelayMs = MIN_STEP_READ
         return;
       }
 
-      await selectApps();
+      const selection = await selectApps();
+      setSelectedAppCount(selection.count);
+      setSelectionRefreshKey((current) => current + 1);
     } catch (error) {
       console.error("Could not open app selector:", error);
       Alert.alert("App selector unavailable", "ScanLock could not open native app selector.");
@@ -203,7 +208,7 @@ export function FirstRunWalkthrough({ onComplete, readingDelayMs = MIN_STEP_READ
             overScrollMode="never"
             showsVerticalScrollIndicator={false}
           >
-            {renderStep(step, qrPayload, isChoosingApps, isSharingQr, chooseApps, shareQrCode, qrCardRef, stepHeadingRef, viewedSteps.current.has(step), markStepRead, reduceMotion, readingDelayMs, postWritingDelayMs)}
+            {renderStep(step, qrPayload, isChoosingApps, isSharingQr, selectedAppCount, selectionRefreshKey, chooseApps, shareQrCode, qrCardRef, stepHeadingRef, viewedSteps.current.has(step), markStepRead, reduceMotion, readingDelayMs, postWritingDelayMs)}
           </ScrollView>
 
           <View style={styles.actions}>
@@ -247,6 +252,8 @@ function renderStep(
   qrPayload: string | null,
   isChoosingApps: boolean,
   isSharingQr: boolean,
+  selectedAppCount: number,
+  selectionRefreshKey: number,
   chooseApps: () => Promise<void>,
   shareQrCode: () => Promise<void>,
   qrCardRef: React.RefObject<View | null>,
@@ -285,6 +292,11 @@ function renderStep(
           </View>
           {isChoosingApps ? <ActivityIndicator color="#7057E8" /> : <MaterialIcons name="chevron-right" size={25} color="#7057E8" />}
         </Pressable>
+        <SelectedActivityList
+          refreshKey={selectionRefreshKey}
+          selectionCount={selectedAppCount}
+          style={styles.selectedActivities}
+        />
         <Note icon="settings" text="You can change this selection later in the Settings tab." />
       </View>
     );
@@ -451,6 +463,7 @@ const styles = StyleSheet.create({
   pickerIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: "#EFECFF", alignItems: "center", justifyContent: "center" },
   pickerCopy: { flex: 1 },
   pickerTitle: { color: "#201C2B", fontSize: 16, fontWeight: "800" },
+  selectedActivities: { marginTop: 12 },
   pickerHint: { color: "#5F596B", fontSize: 12, marginTop: 3 },
   note: { flexDirection: "row", alignItems: "flex-start", gap: 8, marginTop: 17 },
   noteText: { flex: 1, color: "#4F485A", fontSize: 14, lineHeight: 20, fontWeight: "600" },

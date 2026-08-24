@@ -7,6 +7,7 @@ import {
   setBlockingEnabled,
 } from "@/services/appBlocker";
 import { validateQrPayload } from "@/services/qrCode";
+import { hasQrKeyReady, markQrKeyReady } from "@/services/qrKeyReadiness";
 import { BarcodeScanningResult, useCameraPermissions } from "expo-camera";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect } from "expo-router";
@@ -25,6 +26,7 @@ export type ScanStatus =
 
 export function useLockScanner() {
   const [locked, setLockedState] = useState(false);
+  const [hasSelectedApps, setHasSelectedApps] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [status, setStatus] = useState<ScanStatus>("scanning");
@@ -32,6 +34,8 @@ export function useLockScanner() {
   const [errorMessage, setErrorMessage] = useState<string>();
   const [chooseAppsFirstVisible, setChooseAppsFirstVisible] = useState(false);
   const [isChoosingApps, setIsChoosingApps] = useState(false);
+  const [qrKeyReminderVisible, setQrKeyReminderVisible] = useState(false);
+  const [isConfirmingQrKey, setIsConfirmingQrKey] = useState(false);
   const [emergencyUnlockVisible, setEmergencyUnlockVisible] = useState(false);
   const [emergencyUnlockCountdown, setEmergencyUnlockCountdown] = useState(10);
   const [emergencyUnlockChanging, setEmergencyUnlockChanging] = useState(false);
@@ -41,6 +45,7 @@ export function useLockScanner() {
   const lockTimer = useLockTimer();
 
   const dismissChooseAppsFirst = useCallback(() => setChooseAppsFirstVisible(false), []);
+  const dismissQrKeyReminder = useCallback(() => setQrKeyReminderVisible(false), []);
 
   const chooseAppsFromPrompt = useCallback(async () => {
     if (isChoosingApps) return;
@@ -57,7 +62,8 @@ export function useLockScanner() {
         return;
       }
 
-      await selectApps();
+      const selection = await selectApps();
+      setHasSelectedApps(selection.count > 0);
       setChooseAppsFirstVisible(false);
     } catch (error) {
       console.error("Could not select apps:", error);
@@ -110,6 +116,7 @@ export function useLockScanner() {
         const nextLocked = getLocked();
         if (active) {
           setLockedState(nextLocked);
+          setHasSelectedApps(hasSelection());
           void lockTimer.syncWithLockState(nextLocked).catch((error) => {
             console.error("Could not load lock timer:", error);
           });
@@ -145,6 +152,18 @@ export function useLockScanner() {
           return;
         }
 
+        let qrKeyReady = false;
+        try {
+          qrKeyReady = await hasQrKeyReady();
+        } catch (error) {
+          console.error("Could not load QR key readiness:", error);
+        }
+
+        if (!qrKeyReady) {
+          setQrKeyReminderVisible(true);
+          return;
+        }
+
         const authorized = isAuthorized() || (await requestAuthorization());
         if (!authorized) return;
       } catch (error) {
@@ -166,6 +185,23 @@ export function useLockScanner() {
 
     setStatus("scanning");
   }, [locked, permission?.granted, requestPermission]);
+
+  const confirmQrKeyAndOpen = useCallback(async () => {
+    if (isConfirmingQrKey) return;
+
+    setIsConfirmingQrKey(true);
+    setQrKeyReminderVisible(false);
+    try {
+      try {
+        await markQrKeyReady();
+      } catch (error) {
+        console.error("Could not save QR key readiness:", error);
+      }
+      await open();
+    } finally {
+      setIsConfirmingQrKey(false);
+    }
+  }, [isConfirmingQrKey, open]);
 
   const handleBarcodeScanned = useCallback(
     async (result: BarcodeScanningResult) => {
@@ -243,6 +279,7 @@ export function useLockScanner() {
 
   return {
     locked,
+    hasSelectedApps,
     lockElapsed: lockTimer.formattedElapsed,
     isLoading,
     isOpen,
@@ -253,6 +290,10 @@ export function useLockScanner() {
     isChoosingApps,
     chooseAppsFromPrompt,
     dismissChooseAppsFirst,
+    qrKeyReminderVisible,
+    isConfirmingQrKey,
+    confirmQrKeyAndOpen,
+    dismissQrKeyReminder,
     emergencyUnlockVisible,
     emergencyUnlockCountdown,
     emergencyUnlockChanging,

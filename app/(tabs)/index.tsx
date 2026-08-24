@@ -1,12 +1,20 @@
 import { EmergencyUnlockModal } from "@/components/emergency/EmergencyUnlockModal";
 import { ChooseAppsFirstModal } from "@/components/scanner/ChooseAppsFirstModal";
 import { LockStatusCard } from "@/components/scanner/LockStatusCard";
+import { QrKeyReminderModal } from "@/components/scanner/QrKeyReminderModal";
 import { ScannerView } from "@/components/scanner/ScannerView";
 import { useLockScanner } from "@/hooks/use-lock-scanner";
+import { useRouter } from "expo-router";
 import { ActivityIndicator, Modal, StyleSheet, View } from "react-native";
 
 export default function HomeScreen() {
   const scanner = useLockScanner();
+  const router = useRouter();
+
+  const openGetLock = () => {
+    scanner.dismissQrKeyReminder();
+    router.navigate("/(tabs)/getlock");
+  };
 
   if (scanner.isLoading) {
     return (
@@ -54,10 +62,20 @@ export default function HomeScreen() {
         onChooseApps={scanner.chooseAppsFromPrompt}
         onDismiss={scanner.dismissChooseAppsFirst}
       />
+      <QrKeyReminderModal
+        visible={scanner.qrKeyReminderVisible}
+        confirming={scanner.isConfirmingQrKey}
+        onGetLock={openGetLock}
+        onConfirm={scanner.confirmQrKeyAndOpen}
+        onDismiss={scanner.dismissQrKeyReminder}
+      />
       <LockStatusCard
         locked={scanner.locked}
+        hasSelectedApps={scanner.hasSelectedApps}
         lockElapsed={scanner.lockElapsed}
         onScan={scanner.open}
+        onChooseApps={scanner.chooseAppsFromPrompt}
+        choosingApps={scanner.isChoosingApps}
         onEmergencyUnlock={scanner.requestEmergencyUnlock}
       />
     </>
